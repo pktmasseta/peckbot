@@ -1,0 +1,8 @@
+[
+  "hubot-conf",
+  "hubot-diagnostics",
+  "hubot-help",
+  "hubot-redis-brain",
+  "hubot-seen",
+  "hubot-shortcut"
+]
