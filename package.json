@@ -4,6 +4,11 @@
   "private": true,
   "author": "Jack Serrino <jserrino@gmail.com>",
   "description": "The slackbot that powers the PKT slack",
+  "scripts": {
+    "start-redis": "redis-server > /dev/null & echo $! > redis.pid",
+    "stop-redis": "kill -TERM $(cat redis.pid) && rm redis.pid",
+    "start": "bin/hubot -a slack"
+  },
   "dependencies": {
     "hubot": "^2.12.0",
     "hubot-conf": "^1.0.0",
