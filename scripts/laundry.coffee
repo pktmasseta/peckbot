@@ -149,9 +149,9 @@ module.exports = (robot) ->
         response += (printAppointment appointment, false) + "\n"
       res.send response
 
-  robot.respond /laundry create (.+)$/, (res) ->
+  robot.respond /laundry (add|create) (.+)$/, (res) ->
     user = res.message.user.name.toLowerCase()
-    date = chrono.parseDate res.match[1]
+    date = chrono.parseDate res.match[2]
     createAppointment robot, res, user, date, (err, appointment) ->
       if err?
         res.send "Couldn't create event."
