@@ -7,9 +7,12 @@
   "scripts": {
     "start-redis": "redis-server > /dev/null & echo $! > redis.pid",
     "stop-redis": "kill -TERM $(cat redis.pid) && rm redis.pid",
-    "start": "bin/hubot -a slack"
+    "start": "node_modules/hubot/bin/hubot -l peckbot"
   },
   "dependencies": {
+    "chrono-node": "^1.0.8",
+    "google-auth-library": "^0.9.6",
+    "googleapis": "^2.1.5",
     "hubot": "^2.12.0",
     "hubot-conf": "^1.0.0",
     "hubot-diagnostics": "0.0.1",
@@ -19,6 +22,7 @@
     "hubot-seen": "^0.2.2",
     "hubot-shortcut": "^1.0.0",
     "hubot-slack": "^3.3.0",
+    "moment": "^2.10.6",
     "timeago": "^0.2.0"
   },
   "engines": {
