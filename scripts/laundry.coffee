@@ -5,6 +5,7 @@
 #   hubot laundry - gets next 10 laundry appointments
 #   hubot laundry add <date> - makes you a laundry appointment for <date>
 #   hubot laundry remove <id> - deletes the laundry appointment with id
+#   hubot laundry addme <email> - adds your email to the laundry calendar so you get invited to events.
 #   hubot laundry next - returns your next appointment.
 #
 # Author:
@@ -102,6 +103,10 @@ getNextAppointment = (robot, res, user, callback) ->
 
 createAppointment = (robot, res, user, date, callback) ->
   getAuthedClient robot, res, (oauth2Client) ->
+    email = getEmail(robot, user)
+    attendees = []
+    if email?
+      attendees.push({email: email})
     google.calendar('v3').events.insert {
       auth: oauth2Client,
       calendarId: 'primary',
@@ -112,11 +117,12 @@ createAppointment = (robot, res, user, date, callback) ->
         end: {
           dateTime: (new Date(date.getTime() + 7200000)).toISOString()
         },
+        attendees: attendees,
         description: "Laundry use for #{user}",
         summary: user
       }
     }, apiWrapper res, (response) ->
-      callback(null, response)
+      callback(null, response, email)
 
 deleteAppointment = (robot, res, eid, callback) ->
   getAuthedClient robot, res, (oauth2Client) ->
@@ -137,6 +143,14 @@ printAppointment = (appointment, print_id) ->
     result += ", ID: #{id}"
   result
 
+setEmail = (robot, user, email) ->
+  emails_table = robot.brain.get('pkt-emails') or {}
+  emails_table[user] = res.match[1]
+  robot.brain.set('pkt-emails', emails_table)
+
+getEmail = (robot, user) ->
+  (robot.brain.get('pkt-emails') or {})[user]
+
 module.exports = (robot) ->
 
   robot.respond /laundry$/, (res) ->
@@ -152,11 +166,13 @@ module.exports = (robot) ->
   robot.respond /laundry (add|create) (.+)$/, (res) ->
     user = res.message.user.name.toLowerCase()
     date = chrono.parseDate res.match[2]
-    createAppointment robot, res, user, date, (err, appointment) ->
+    createAppointment robot, res, user, date, (err, appointment, invited_email) ->
       if err?
         res.send "Couldn't create event."
         return
       res.send("I created an appointment for you, #{user}:\n" + printAppointment appointment, true)
+      if invited_email?
+        res.send("I also invited #{invited_email} as you requested.")
 
   robot.respond /laundry delete ([a-zA-Z0-9]+)$/, (res) ->
     deleteAppointment robot, res, res.match[1], (err) ->
@@ -180,3 +196,16 @@ module.exports = (robot) ->
   robot.respond /laundry storetoken (.+)$/, (res) ->
     storeToken robot, res, res.match[1], () ->
       res.send "Token stored! Please try your command again."
+
+  robot.respond /addme (.+)$/, (res) ->
+    user = res.message.user.name.toLowerCase()
+    setEmail(robot, user, res.match[1])
+    res.send "Thanks! I'll now invite #{res.match[1]} to all events created by you."
+
+  robot.respond /removeme$/, (res) ->
+    user = res.message.user.name.toLowerCase()
+    emails_table = robot.brain.get('pkt-emails') or {}
+    delete emails_table[user]
+    robot.brain.set('pkt-emails', emails_table)
+    res.send "OK! Removed your email from the list"
+
