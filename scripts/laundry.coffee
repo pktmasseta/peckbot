@@ -198,12 +198,12 @@ module.exports = (robot) ->
     storeToken robot, res, res.match[1], () ->
       res.send "Token stored! Please try your command again."
 
-  robot.respond /addme (.+)$/, (res) ->
+  robot.respond /laundry addme (.+)$/, (res) ->
     user = res.message.user.name.toLowerCase()
     setEmail(robot, user, res.match[1])
     res.send "Thanks! I'll now invite #{res.match[1]} to all events created by you."
 
-  robot.respond /removeme$/, (res) ->
+  robot.respond /laundry removeme$/, (res) ->
     user = res.message.user.name.toLowerCase()
     emails_table = robot.brain.get('pkt-emails') or {}
     delete emails_table[user]
