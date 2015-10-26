@@ -145,7 +145,7 @@ printAppointment = (appointment, print_id) ->
 
 setEmail = (robot, user, email) ->
   emails_table = robot.brain.get('pkt-emails') or {}
-  emails_table[user] = res.match[1]
+  emails_table[user] = email
   robot.brain.set('pkt-emails', emails_table)
 
 getEmail = (robot, user) ->
