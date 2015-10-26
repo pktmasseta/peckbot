@@ -118,6 +118,7 @@ createAppointment = (robot, res, user, date, callback) ->
           dateTime: (new Date(date.getTime() + 7200000)).toISOString()
         },
         attendees: attendees,
+        sendNotifications: true,
         description: "Laundry use for #{user}",
         summary: user
       }
