@@ -201,12 +201,12 @@ module.exports = (robot) ->
   robot.respond /laundry addme (.+)$/, (res) ->
     user = res.message.user.name.toLowerCase()
     setEmail(robot, user, res.match[1])
-    res.send "Thanks! I'll now invite #{res.match[1]} to all events created by you."
+    res.send "Thanks! I'll now invite #{res.match[1]} to all future events created by you."
 
   robot.respond /laundry removeme$/, (res) ->
     user = res.message.user.name.toLowerCase()
     emails_table = robot.brain.get('pkt-emails') or {}
     delete emails_table[user]
     robot.brain.set('pkt-emails', emails_table)
-    res.send "OK! Removed your email from the list"
+    res.send "OK! Removed your email from the list."
 
