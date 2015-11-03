@@ -154,7 +154,7 @@ getEmail = (robot, user) ->
 
 module.exports = (robot) ->
 
-  robot.respond /laundry (add|create) (.+)$/, (res) ->
+  robot.respond /laundry (add|create) (.+)$/i, (res) ->
     user = res.message.user.name.toLowerCase()
     date = chrono.parseDate res.match[2]
     createAppointment robot, res, user, date, (err, appointment, invited_email) ->
@@ -165,14 +165,14 @@ module.exports = (robot) ->
       if invited_email?
         res.send("I also invited #{invited_email} as you requested.")
 
-  robot.respond /laundry delete ([a-zA-Z0-9]+)$/, (res) ->
+  robot.respond /laundry delete ([a-zA-Z0-9]+)$/i, (res) ->
     deleteAppointment robot, res, res.match[1], (err) ->
       if err?
         res.send "Couldn't delete event."
         return
       res.send "Successfully deleted event."
 
-  robot.respond /laundry next\s*$/, (res) ->
+  robot.respond /laundry next\s*$/i, (res) ->
     user = res.message.user.name.toLowerCase()
     getNextAppointment robot, res, user, (err, appointment) ->
       if err?
@@ -180,27 +180,27 @@ module.exports = (robot) ->
         return
       res.send(printAppointment appointment, true)
 
-  robot.respond /laundry revoketoken\s*$/, (res) ->
+  robot.respond /laundry revoketoken\s*$/i, (res) ->
     robot.brain.set 'laundry-calendar-token', null
     res.send "Token revoked."
 
-  robot.respond /laundry storetoken (.+)$/, (res) ->
+  robot.respond /laundry storetoken (.+)$/i, (res) ->
     storeToken robot, res, res.match[1], () ->
       res.send "Token stored! Please try your command again."
 
-  robot.respond /laundry addme (.+)$/, (res) ->
+  robot.respond /laundry addme (.+)$/i, (res) ->
     user = res.message.user.name.toLowerCase()
     setEmail(robot, user, res.match[1])
     res.send "Thanks! I'll now invite #{res.match[1]} to all future events created by you."
 
-  robot.respond /laundry removeme\s*$/, (res) ->
+  robot.respond /laundry removeme\s*$/i, (res) ->
     user = res.message.user.name.toLowerCase()
     emails_table = robot.brain.get('pkt-emails') or {}
     delete emails_table[user]
     robot.brain.set('pkt-emails', emails_table)
     res.send "OK! Removed your email from the list."
 
-  robot.respond /laundry\s*$/, (res) ->
+  robot.respond /laundry\s*$/i, (res) ->
     getAllAppointments robot, res, 10, (err, appointments) ->
       if err?
         res.send "Couldn't fetch appointments."
