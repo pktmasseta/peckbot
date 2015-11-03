@@ -14,7 +14,7 @@ module.exports = (robot) ->
   makeURL = (user) ->
     "#{config('url')}?key=#{config('key')}&action=#{config('action')}&username=#{user}"
 
-  robot.respond /unlock$/, (res) ->
+  robot.respond /unlock\s+$/i, (res) ->
     user = res.message.user.name.toLowerCase()
     robot.http(makeURL(user)).get() (err, response, body) ->
       if err or response.statusCode isnt 200
