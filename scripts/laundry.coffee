@@ -154,16 +154,6 @@ getEmail = (robot, user) ->
 
 module.exports = (robot) ->
 
-  robot.respond /laundry$/, (res) ->
-    getAllAppointments robot, res, 10, (err, appointments) ->
-      if err?
-        res.send "Couldn't fetch appointments."
-        return
-      response = ""
-      for appointment in appointments
-        response += (printAppointment appointment, false) + "\n"
-      res.send response
-
   robot.respond /laundry (add|create) (.+)$/, (res) ->
     user = res.message.user.name.toLowerCase()
     date = chrono.parseDate res.match[2]
@@ -182,7 +172,7 @@ module.exports = (robot) ->
         return
       res.send "Successfully deleted event."
 
-  robot.respond /laundry next$/, (res) ->
+  robot.respond /laundry next\s*$/, (res) ->
     user = res.message.user.name.toLowerCase()
     getNextAppointment robot, res, user, (err, appointment) ->
       if err?
@@ -190,7 +180,7 @@ module.exports = (robot) ->
         return
       res.send(printAppointment appointment, true)
 
-  robot.respond /laundry revoketoken$/, (res) ->
+  robot.respond /laundry revoketoken\s*$/, (res) ->
     robot.brain.set 'laundry-calendar-token', null
     res.send "Token revoked."
 
@@ -203,10 +193,20 @@ module.exports = (robot) ->
     setEmail(robot, user, res.match[1])
     res.send "Thanks! I'll now invite #{res.match[1]} to all future events created by you."
 
-  robot.respond /laundry removeme$/, (res) ->
+  robot.respond /laundry removeme\s*$/, (res) ->
     user = res.message.user.name.toLowerCase()
     emails_table = robot.brain.get('pkt-emails') or {}
     delete emails_table[user]
     robot.brain.set('pkt-emails', emails_table)
     res.send "OK! Removed your email from the list."
+
+  robot.respond /laundry\s*$/, (res) ->
+    getAllAppointments robot, res, 10, (err, appointments) ->
+      if err?
+        res.send "Couldn't fetch appointments."
+        return
+      response = ""
+      for appointment in appointments
+        response += (printAppointment appointment, false) + "\n"
+      res.send response
 
