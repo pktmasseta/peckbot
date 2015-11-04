@@ -165,8 +165,8 @@ module.exports = (robot) ->
       if invited_email?
         res.send("I also invited #{invited_email} as you requested.")
 
-  robot.respond /laundry delete ([a-zA-Z0-9]+)$/i, (res) ->
-    deleteAppointment robot, res, res.match[1], (err) ->
+  robot.respond /laundry (delete|remove) ([a-zA-Z0-9]+)$/i, (res) ->
+    deleteAppointment robot, res, res.match[2], (err) ->
       if err?
         res.send "Couldn't delete event."
         return
