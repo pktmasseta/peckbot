@@ -1,8 +1,14 @@
 # Description:
 #   Fun responses
 #
+# Commands:
+#   hubot rolldie
+#
 # Author:
-#   anishathalye
+#   Detry322
+
+randomInt = (low, high) ->
+  Math.floor(Math.random() * (high - low) + low);
 
 module.exports = (robot) ->
 
@@ -60,3 +66,6 @@ thank mr skeltal
 
   robot.hear /(doot|[0-9]spooky)/i, (res) ->
     res.send dootDoot
+
+  robot.respond /rolldie/i, (res) ->
+    res.send "Your rolls are: " + (randomInt(1, 7) for i in [1..5]).join(", ")
