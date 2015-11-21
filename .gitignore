@@ -5,7 +5,6 @@ node_modules
 *.rdb
 *.pid
 *.log
-hackmit-money-2015-credentials.json
 *.*~
 run_redis.sh
 run_server.sh
