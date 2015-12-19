@@ -206,7 +206,10 @@ module.exports = (robot) ->
         res.send "Couldn't fetch appointments."
         return
       response = ""
-      for appointment in appointments
-        response += (printAppointment appointment, false) + "\n"
-      res.send response
+      if appointments.length > 0
+        for appointment in appointments
+          response += (printAppointment appointment, false) + "\n"
+        res.send response
+      else
+        res.send "I can't see any appointments in the near future."
 
