@@ -68,4 +68,6 @@ thank mr skeltal
     res.send dootDoot
 
   robot.respond /rolldie/i, (res) ->
-    res.send "Your rolls are: " + (randomInt(1, 7) for i in [1..5]).join(", ")
+    rolls = (randomInt(1, 7) for i in [1..5])
+    result = Math.pow(Math.min(rolls[0], rolls[1]), Math.min(rolls[2], rolls[3], rolls[4]))
+    res.send ":dice: You rolled " + result + ". Rolls: "+ rolls.join(", ") + " :dice:"
