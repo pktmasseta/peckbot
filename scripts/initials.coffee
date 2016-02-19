@@ -40,23 +40,6 @@ module.exports = (robot) ->
     robot.brain.set('pkt-initials', initials_table)
     res.send "Added *#{initials}*: #{name}, PKT '#{year}"
 
-  robot.respond /initials automatch$/, (res) ->
-    initials_table = robot.brain.get('pkt-initials') or {}
-    result = ""
-    for own key, value of initials_table
-      unmatched = true
-      for own key, user of robot.brain.data.users
-        if value['name'] == user['real_name']
-          user['initials'] = value['initials']
-          user['year'] = value['year']
-          user['matched'] = true
-          result += "Matched #{user['initials']}, #{user['year']}\n"
-          unmatched = false
-          break
-      if unmatched
-        result += "*Could not match*: #{value['name']}, #{value['year']}\n"
-    res.send result
-
   robot.respond /initials get ([A-Z]{3})$/, (res) ->
     initials = res.match[1].toUpperCase()
     user = robot.brain.userForInitials(initials)
