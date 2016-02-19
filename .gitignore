@@ -10,3 +10,5 @@ run_redis.sh
 run_server.sh
 start_hubot.sh
 client_secret.json
+tmp/
+xero/
