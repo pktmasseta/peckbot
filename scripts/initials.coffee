@@ -4,6 +4,7 @@
 # Commands:
 #   hubot initials add <initials> <year> <name> - Adds person to initials database
 #   hubot initials get <initials> - Returns the person with the given initials.
+#   hubot initials get <username> - Returns the person wtih the given slack username.
 #
 # Author:
 #   Detry322
