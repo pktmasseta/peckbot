@@ -55,7 +55,7 @@ module.exports = (robot) ->
       else
         res.send "No one with initials #{initials} exists."
 
-  robot.respond /initials get ([a-z0-9]+$)/, (res) ->
+  robot.respond /initials get ([a-z0-9_\-]+)$/, (res) ->
     slack_name = res.match[1]
     user = robot.brain.userForName(slack_name)
     if user? and user['matched']

@@ -24,7 +24,9 @@
     "hubot-shortcut": "^1.0.0",
     "hubot-slack": "^3.3.0",
     "moment": "^2.10.6",
-    "timeago": "^0.2.0"
+    "request": "^2.69.0",
+    "timeago": "^0.2.0",
+    "xero": "0.0.8"
   },
   "engines": {
     "node": "0.10.x"

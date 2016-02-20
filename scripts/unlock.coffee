@@ -4,6 +4,11 @@
 # Commands:
 #   hubot unlock - unlocks the front door.
 #
+# Config:
+#   HUBOT_UNLOCK_URL
+#   HUBOT_UNLOCK_KEY
+#   HUBOT_UNLOCK_ACTION
+#
 # Author:
 #   Detry322
 
