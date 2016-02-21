@@ -100,11 +100,6 @@ callXero = (endpoint, callback) ->
       return
     callback(json.Response)
 
-handleCancel = (robot, res, user) ->
-  if user.xero_state != '0_not_started'
-    clearTimeout(user.xero_timeout)
-    user.xero_state = '0_not_started'
-
 timeoutControl = (res, user) ->
   # This handles the 5 minute timeout for reimbursements. If a user stops responding, after 5 minutes their reimbursements stops.
   old_state = user.xero_state || '0_not_started'
@@ -119,21 +114,27 @@ matchUser = (robot, res, user, email) ->
   callXero '/Users', (json) ->
     for xero_user in json.Users.User
       if email == xero_user.EmailAddress.toLowerCase()
-        user.xero_userid = xero_user.UserID
+        robot.brain.userForName(user.name).xero_userid = xero_user.UserID
         res.send "Successfully connected #{user['name']} to xero."
         return
     res.send "Unable to find a user with email #{email} in the xero database"
+
+handleCancel = (robot, res, user) ->
+  if user.xero_state != '0_not_started'
+    clearTimeout(user.xero_timeout)
+    user.xero_state = '0_not_started'
 
 handleStartReimbursement = (robot, res, user, command, success) ->
   if command == 'start'
     res.send 'Ok! How much is this reimbursement for? Respond with something similar to `xero $12.34`.'
     success()
 
-handleSelectBudget = (robot, res, user, command, success) ->
+handleAddAmount = (robot, res, user, command, success) ->
   amount = Number(command.replace(/[^0-9\.]+/g,""))
   if amount == 0 or isNaN(amount)
     res.send 'I couldn\'t recognize that dollar amount. Please retry with something similar to `xero $12.34`'
     return
+  user.xero_amount = amount
   callXero '/TrackingCategories', (json) ->
     budget = null
     for category in json.TrackingCategories.TrackingCategory
@@ -157,8 +158,7 @@ handleSelectBudget = (robot, res, user, command, success) ->
     res.send result
     success()
 
-
-handleSelectType = (robot, res, user, command, success) ->
+handleSelectBudget = (robot, res, user, command, success) ->
   tracking = robot.brain.get 'xero-budget-tracking'
   if not command of tracking.budgets
     res.send "I didn't recognize that budget. Please try again."
@@ -169,7 +169,7 @@ handleSelectType = (robot, res, user, command, success) ->
   callXero '/Accounts', (json) ->
     types = {}
     for type in json.Accounts.Account
-      if type.ShowInExpenseClaims == false
+      if type.ShowInExpenseClaims != 'true'
         continue
       types[type.Code] = {
         name: type.Name,
@@ -182,7 +182,7 @@ handleSelectType = (robot, res, user, command, success) ->
     res.send result
     success()
 
-handleInputDescription = (robot, res, user, command, success) ->
+handleSelectType = (robot, res, user, command, success) ->
   types = robot.brain.get 'xero-types'
   if not command of types
     res.send "I didn't recognize that type. Please try again."
@@ -190,6 +190,10 @@ handleInputDescription = (robot, res, user, command, success) ->
   selected_type = types[command]
   user.xero_type = selected_type.id
   res.send "Selected #{selected_type.name}. Now, write a very brief description of the expense. Please respond with `xero <description>`."
+  success()
+
+handleInputDescription = (robot, res, user, command, success) ->
+  user.xero_description = command
   success()
 
 submitReimbursement = (robot, res, user, success) ->
@@ -202,20 +206,25 @@ stateTransition = (robot, res, user, command) ->
 
   else if user.xero_state == '1_image_received'
     handleStartReimbursement robot, res, user, command, () ->
-      user.xero_state = '2_reimbursement_started'
+      robot.brain.userForName(user.name).xero_state = '2_reimbursement_started'
 
   else if user.xero_state == '2_reimbursement_started'
+    handleAddAmount robot, res, user, command, () ->
+      robot.brain.userForName(user.name).xero_state = '3_amount_added'
+
+  else if user.xero_state == '3_amount_added'
     handleSelectBudget robot, res, user, command, () ->
-      user.xero_state = '3_budget_selected'
+      robot.brain.userForName(user.name).xero_state = '4_budget_selected'
 
-  else if user.xero_state == '3_budget_selected'
+  else if user.xero_state == '4_budget_selected'
     handleSelectType robot, res, user, command, () ->
-      user.xero_state = '4_type_selected'
+      robot.brain.userForName(user.name).xero_state = '5_type_selected'
 
-  else if user.xero_state == '4_type_selected'
+  else if user.xero_state == '5_type_selected'
     handleInputDescription robot, res, user, command, () ->
-      submitReimbursement robot, res, user, () ->
-        res.send "Thanks! Your reimbursement for $#{user.xero_amount} has been submitted. To modify or view progress, please visit https://xero.com."
+      submitReimbursement robot, res, robot.brain.userForName(user.name), () ->
+        amount = robot.brain.userForName(user.name).xero_amount
+        res.send "Thanks! Your reimbursement for $#{amount} has been submitted. To modify or view progress, please visit https://xero.com."
         handleCancel(robot, res, user)
 
 module.exports = (robot) ->
@@ -249,7 +258,7 @@ module.exports = (robot) ->
   robot.respond /xero (.+)$/, (res) ->
     command = res.match[1]
     user = res.message.user
-    user.xero_state = user.xero_state || '0_not_started'
+    user.xero_state = user.xero_state or '0_not_started'
     if command == 'help'
       res.send "I can file PKT reimbursements for you. To start the process, send an image to me in a direct message."
       return
@@ -269,10 +278,10 @@ module.exports = (robot) ->
 
   robot.respond /xero member add ([a-z0-9_\-]+)($|.+$)/, (res) ->
     user = robot.brain.userForName(res.match[1])
-    email = res.match[2].trim() or user['email_address']
     if not user?
       res.send "Couldn't find that user"
       return
+    email = res.match[2].trim() or user['email_address']
     matchUser(robot, res, user, email)
 
   robot.respond /xero (delete|remove) ([a-z0-9_\-]+)$/, (res) ->
