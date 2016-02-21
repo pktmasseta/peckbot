@@ -10,7 +10,6 @@
 #
 # Config:
 #   HUBOT_XERO_CONTACT_ID
-#   HUBOT_XERO_ACCOUNT_ID
 #   HUBOT_XERO_CONSUMER_KEY
 #   HUBOT_XERO_CONSUMER_SECRET
 #
@@ -20,6 +19,8 @@
 fs = require 'fs'
 request = require 'request'
 Xero = require 'xero'
+dateformat = require 'dateformat'
+streamBuffers = require 'stream-buffers'
 
 xero = try
   private_key = fs.readFileSync('xero/private_key.pem', 'ascii')
@@ -31,23 +32,6 @@ catch e
 #   res.send "Step 3: Submitting receipt for reimbursement..."
 #   res.send "Success! You should receive a check for $#{res.reimbursement_amount} in a couple of days. You can track progress on https://xero.com"
 
-
-# uploadImage = (robot, res, receipt_id) ->
-#   res.send "Step 2: Uploading receipt to xero..."
-#   res.send 'P.S. The "public link" message you receive from slackbot is to download the image. Feel free to revoke the public link after this is complete.'
-#   public_link = res.message.rawMessage.file.permalink_public
-#   pub_secret = public_link.split("-").reverse()[0]
-#   private_link = res.message.rawMessage.file.url_private + "?pub_secret=" + pub_secret
-#   request.get public_link, (err, response, body) ->
-#     if err or response.statusCode != 200
-#       res.send "Error creating public link"
-#       return
-#     request.get private_link, (err, response, body) ->
-#       if err or response.statusCode != 200
-#         res.send "Error downloading file from slack"
-#         return
-#       image = new Buffer(body)
-#       submitReceipt(robot, res, receipt_id)
 
 # createReceipt = (robot, res, description, amount, budget) ->
 #   res.send "Step 1: Creating receipt in xero..."
@@ -93,7 +77,7 @@ catch e
   #     return
   #   handleImageMessage robot, res
 
-callXero = (endpoint, callback) ->
+callXero = (res, endpoint, callback) ->
   xero.call 'GET', endpoint, null, (err, json) ->
     if err
       res.send "There was an error accessing the Xero API. Please try again."
@@ -111,7 +95,7 @@ timeoutControl = (res, user) ->
   , 300000)
 
 matchUser = (robot, res, user, email) ->
-  callXero '/Users', (json) ->
+  callXero res, '/Users', (json) ->
     for xero_user in json.Users.User
       if email == xero_user.EmailAddress.toLowerCase()
         robot.brain.userForName(user.name).xero_userid = xero_user.UserID
@@ -135,21 +119,20 @@ handleAddAmount = (robot, res, user, command, success) ->
     res.send 'I couldn\'t recognize that dollar amount. Please retry with something similar to `xero $12.34`'
     return
   user.xero_amount = amount
-  callXero '/TrackingCategories', (json) ->
+  callXero res, '/TrackingCategories', (json) ->
     budget = null
     for category in json.TrackingCategories.TrackingCategory
       if category.Name.toLowerCase().match("budget")?
         budget = category
         break
     tracking = {
-      id: budget.TrackingCategoryID
+      name: budget.Name
       budgets: {}
     }
     for option in budget.Options.Option
       shortname = option.Name.split(' ')[0].toLowerCase()
       tracking.budgets[shortname] = {
         name: option.Name
-        id: option.TrackingOptionID
       }
     robot.brain.set('xero-budget-tracking', tracking)
     result = "Please select a budget for this receipt. Please respond with `xero <shortname>` where `<shortname>` is the bolded name for that budget.\n\n"
@@ -160,13 +143,13 @@ handleAddAmount = (robot, res, user, command, success) ->
 
 handleSelectBudget = (robot, res, user, command, success) ->
   tracking = robot.brain.get 'xero-budget-tracking'
-  if not command of tracking.budgets
+  if not tracking.budgets[command]?
     res.send "I didn't recognize that budget. Please try again."
     return
   selected_budget = tracking.budgets[command]
-  user.xero_tracking_category = tracking.id
-  user.xero_budget = selected_budget.id
-  callXero '/Accounts', (json) ->
+  user.xero_tracking_category = tracking.name
+  user.xero_budget = selected_budget.name
+  callXero res, '/Accounts', (json) ->
     types = {}
     for type in json.Accounts.Account
       if type.ShowInExpenseClaims != 'true'
@@ -184,11 +167,11 @@ handleSelectBudget = (robot, res, user, command, success) ->
 
 handleSelectType = (robot, res, user, command, success) ->
   types = robot.brain.get 'xero-types'
-  if not command of types
+  if not types[command]?
     res.send "I didn't recognize that type. Please try again."
     return
   selected_type = types[command]
-  user.xero_type = selected_type.id
+  user.xero_type = command
   res.send "Selected #{selected_type.name}. Now, write a very brief description of the expense. Please respond with `xero <description>`."
   success()
 
@@ -196,8 +179,92 @@ handleInputDescription = (robot, res, user, command, success) ->
   user.xero_description = command
   success()
 
+createDraftReceipt = (res, user, success) ->
+  draft = {
+    Date: dateformat(new Date(), 'yyyy-mm-dd'),
+    Contact: {
+      ContactID: process.env.HUBOT_XERO_CONTACT_ID
+    },
+    LineAmountTypes: 'Inclusive',
+    LineItems: {
+      LineItem: {
+        Description: user.xero_description,
+        UnitAmount: user.xero_amount,
+        Quantity: 1,
+        AccountCode: user.xero_type,
+        Tracking: {
+          TrackingCategory: {
+            Name: user.xero_tracking_category,
+            Option: user.xero_budget
+          }
+        }
+      }
+    },
+    User: {
+      UserID: user.xero_userid
+    }
+  }
+  xero.call 'PUT', '/Receipts', draft, (err, json) ->
+    if err
+      res.send "There was an error creating the draft receipt. Please try again."
+      return
+    success(json.Response.Receipts.Receipt.ReceiptID)
+
+fs = require 'fs'
+
+downloadSlackReceipt = (res, public_link, private_link, success) ->
+  pub_secret = public_link.split("-").reverse()[0]
+  private_link += "?pub_secret=" + pub_secret
+  request.get public_link, (err, response, body) ->
+    if err or response.statusCode != 200
+      res.send "Error creating public link. Please try again."
+      return
+    image = new streamBuffers.WritableStreamBuffer()
+    request.get(private_link).on('error', () ->
+      res.send "Error downloading file from slack. Please try again."
+    ).pipe(image).on('finish', () ->
+      image_buffer = image.getContents()
+      success(image_buffer)
+    )
+
+uploadReceipt = (res, receipt_id, filename, image_buffer, success) ->
+  endpoint = '/Receipts/' + receipt_id + '/Attachments/' + filename
+  xero.call 'PUT', endpoint, image_buffer, (err, json) ->
+    if err
+      res.send "There was an error uploading the file to xero. Please try again."
+      return
+    success()
+
+submitExpenseClaim = (res, userid, receipt_id, success) ->
+  claim = {
+    User: {
+      UserID: userid
+    },
+    Receipts: {
+      Receipt: {
+        ReceiptID: receipt_id
+      }
+    }
+  }
+  xero.call 'PUT', '/ExpenseClaims', claim, (err, json) ->
+    if err
+      res.send "There was an error submitting the expense claim. Please try again."
+      return
+    success()
+
 submitReimbursement = (robot, res, user, success) ->
-  success()
+  res.send "Creating draft xero receipt..."
+  userid = user.xero_userid
+  public_link = user.xero_receipt_public_link
+  private_link = user.xero_receipt_private_link
+  filename = private_link.split('/').reverse()[0]
+  createDraftReceipt res, user, (receipt_id) ->
+    res.send "Downloading receipt image from slack..."
+    downloadSlackReceipt res, public_link, private_link, (image_buffer) ->
+      res.send "Uploading receipt image to xero..."
+      uploadReceipt res, receipt_id, filename, image_buffer, () ->
+        res.send "Submitting expense claim..."
+        submitExpenseClaim res, userid, receipt_id, success
 
 stateTransition = (robot, res, user, command) ->
   if user.xero_state == '0_not_started'
@@ -233,7 +300,8 @@ module.exports = (robot) ->
   # user.xero_userid
   # user.xero_state
   # user.xero_timeout
-  # user.xero_receipt_link
+  # user.xero_receipt_public_link
+  # user.xero_receipt_private_link
   # user.xero_amount
   # user.xero_tracking_category
   # user.xero_budget
@@ -248,11 +316,15 @@ module.exports = (robot) ->
     if res.message?.rawMessage?.subtype != "file_share"
       return
     user = res.message.user
+    if not user.xero_userid?
+      res.send "You haven't been set up with xero yet. Try running `xero member add <your slack name>`. If that doesn't work, ask pkt-it"
+      return
     if user.name != res.message.room
       return
     timeoutControl(res, user)
-    res.message.user.xero_receipt_link = res.message.rawMessage.file.permalink_public
-    res.message.user.xero_state = '1_image_received'
+    user.xero_receipt_public_link = res.message.rawMessage.file.permalink_public
+    user.xero_receipt_private_link = res.message.rawMessage.file.url_private
+    user.xero_state = '1_image_received'
     res.send "Thanks for the image. If this is a receipt, please reply with `xero start`.  If at any point you wish to cancel your progress, send `xero cancel`."
 
   robot.respond /xero (.+)$/, (res) ->
