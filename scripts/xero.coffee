@@ -130,7 +130,7 @@ handleStartReimbursement = (robot, res, user, command, success) ->
     success()
 
 handleSelectBudget = (robot, res, user, command, success) ->
-  amount = Number(comment_array[1].replace(/[^0-9\.]+/g,""))
+  amount = Number(command.replace(/[^0-9\.]+/g,""))
   if amount == 0 or isNaN(amount)
     res.send 'I couldn\'t recognize that dollar amount. Please retry with something similar to `xero $12.34`'
     return
@@ -152,40 +152,67 @@ handleSelectBudget = (robot, res, user, command, success) ->
       }
     robot.brain.set('xero-budget-tracking', tracking)
     result = "Please select a budget for this receipt. Please respond with `xero <shortname>` where `<shortname>` is the bolded name for that budget.\n\n"
-    for own shortname, budget in tracking.budgets
-      result += "*#{shortname}*: #{budget.name}"
+    for own shortname, budget of tracking.budgets
+      result += "*#{shortname}*: #{budget.name}\n"
     res.send result
     success()
 
 
 handleSelectType = (robot, res, user, command, success) ->
-  # TODO
+  tracking = robot.brain.get 'xero-budget-tracking'
+  if not command of tracking.budgets
+    res.send "I didn't recognize that budget. Please try again."
+    return
+  selected_budget = tracking.budgets[command]
+  user.xero_tracking_category = tracking.id
+  user.xero_budget = selected_budget.id
+  callXero '/Accounts', (json) ->
+    types = {}
+    for type in json.Accounts.Account
+      if type.ShowInExpenseClaims == false
+        continue
+      types[type.Code] = {
+        name: type.Name,
+        id: type.AccountID
+      }
+    robot.brain.set('xero-types', types)
+    result = "Selected #{selected_budget.name}. Now, select the type of expense. Please respond with `xero <id>` where `<id>` is the bolded number for that type.\n\n"
+    for own code, type of types
+      result += "*#{code}*: #{type.name}\n"
+    res.send result
+    success()
 
 handleInputDescription = (robot, res, user, command, success) ->
-  # TODO
+  types = robot.brain.get 'xero-types'
+  if not command of types
+    res.send "I didn't recognize that type. Please try again."
+    return
+  selected_type = types[command]
+  user.xero_type = selected_type.id
+  res.send "Selected #{selected_type.name}. Now, write a very brief description of the expense. Please respond with `xero <description>`."
+  success()
 
 submitReimbursement = (robot, res, user, success) ->
-  # TODO
+  success()
 
 stateTransition = (robot, res, user, command) ->
-  if state == '0_not_started'
+  if user.xero_state == '0_not_started'
     res.send "You haven't started the reimbursement process. Please direct message me an image of your receipt."
     return
 
-  else if state == '1_image_received'
+  else if user.xero_state == '1_image_received'
     handleStartReimbursement robot, res, user, command, () ->
       user.xero_state = '2_reimbursement_started'
 
-  else if state == '2_reimbursement_started'
+  else if user.xero_state == '2_reimbursement_started'
     handleSelectBudget robot, res, user, command, () ->
       user.xero_state = '3_budget_selected'
-    return
 
-  else if state == '3_budget_selected'
+  else if user.xero_state == '3_budget_selected'
     handleSelectType robot, res, user, command, () ->
       user.xero_state = '4_type_selected'
 
-  else if state == '4_type_selected'
+  else if user.xero_state == '4_type_selected'
     handleInputDescription robot, res, user, command, () ->
       submitReimbursement robot, res, user, () ->
         res.send "Thanks! Your reimbursement for $#{user.xero_amount} has been submitted. To modify or view progress, please visit https://xero.com."
@@ -199,6 +226,7 @@ module.exports = (robot) ->
   # user.xero_timeout
   # user.xero_receipt_link
   # user.xero_amount
+  # user.xero_tracking_category
   # user.xero_budget
   # user.xero_type
   # user.xero_description
@@ -216,14 +244,14 @@ module.exports = (robot) ->
     timeoutControl(res, user)
     res.message.user.xero_receipt_link = res.message.rawMessage.file.permalink_public
     res.message.user.xero_state = '1_image_received'
-    res.send "Thanks for the image. If this is a receipt, please reply with `xero start`."
+    res.send "Thanks for the image. If this is a receipt, please reply with `xero start`.  If at any point you wish to cancel your progress, send `xero cancel`."
 
   robot.respond /xero (.+)$/, (res) ->
     command = res.match[1]
     user = res.message.user
     user.xero_state = user.xero_state || '0_not_started'
     if command == 'help'
-      res.send "I can file PKT reimbursements for you. To start the process, send an image to me in a direct message. If at any point you wish to cancel your progress, send `xero cancel`"
+      res.send "I can file PKT reimbursements for you. To start the process, send an image to me in a direct message."
       return
     if command.split(' ')[0] == 'member'
       return
@@ -232,6 +260,7 @@ module.exports = (robot) ->
       return
     if command == 'cancel'
       handleCancel(robot, res, user)
+      res.send "Reimbursement cancelled."
       return
     if user.name != res.message.room
       return
