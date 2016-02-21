@@ -28,7 +28,7 @@
     "request": "^2.69.0",
     "stream-buffers": "^3.0.0",
     "timeago": "^0.2.0",
-    "xero": "0.0.8"
+    "xero": "git+https://github.com/Detry322/xero.git"
   },
   "engines": {
     "node": "0.10.x"

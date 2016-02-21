@@ -212,7 +212,7 @@ createDraftReceipt = (res, user, success) ->
 
 fs = require 'fs'
 
-downloadSlackReceipt = (res, public_link, private_link, success) ->
+downloadSlackReceipt = (res, content_type, public_link, private_link, success) ->
   pub_secret = public_link.split("-").reverse()[0]
   private_link += "?pub_secret=" + pub_secret
   request.get public_link, (err, response, body) ->
@@ -224,6 +224,7 @@ downloadSlackReceipt = (res, public_link, private_link, success) ->
       res.send "Error downloading file from slack. Please try again."
     ).pipe(image).on('finish', () ->
       image_buffer = image.getContents()
+      image_buffer.content_type = content_type
       success(image_buffer)
     )
 
@@ -257,10 +258,11 @@ submitReimbursement = (robot, res, user, success) ->
   userid = user.xero_userid
   public_link = user.xero_receipt_public_link
   private_link = user.xero_receipt_private_link
+  content_type = user.xero_receipt_content_type
   filename = private_link.split('/').reverse()[0]
   createDraftReceipt res, user, (receipt_id) ->
     res.send "Downloading receipt image from slack..."
-    downloadSlackReceipt res, public_link, private_link, (image_buffer) ->
+    downloadSlackReceipt res, content_type, public_link, private_link, (image_buffer) ->
       res.send "Uploading receipt image to xero..."
       uploadReceipt res, receipt_id, filename, image_buffer, () ->
         res.send "Submitting expense claim..."
@@ -291,7 +293,7 @@ stateTransition = (robot, res, user, command) ->
     handleInputDescription robot, res, user, command, () ->
       submitReimbursement robot, res, robot.brain.userForName(user.name), () ->
         amount = robot.brain.userForName(user.name).xero_amount
-        res.send "Thanks! Your reimbursement for $#{amount} has been submitted. To modify or view progress, please visit https://xero.com."
+        res.send "Thanks! Your reimbursement for $#{amount} has been submitted."
         handleCancel(robot, res, user)
 
 module.exports = (robot) ->
@@ -300,6 +302,7 @@ module.exports = (robot) ->
   # user.xero_userid
   # user.xero_state
   # user.xero_timeout
+  # user.xero_receipt_content_type
   # user.xero_receipt_public_link
   # user.xero_receipt_private_link
   # user.xero_amount
@@ -324,6 +327,7 @@ module.exports = (robot) ->
     timeoutControl(res, user)
     user.xero_receipt_public_link = res.message.rawMessage.file.permalink_public
     user.xero_receipt_private_link = res.message.rawMessage.file.url_private
+    user.xero_receipt_content_type = res.message.rawMessage.file.mimetype
     user.xero_state = '1_image_received'
     res.send "Thanks for the image. If this is a receipt, please reply with `xero start`.  If at any point you wish to cancel your progress, send `xero cancel`."
 
