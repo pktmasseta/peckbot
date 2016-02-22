@@ -9,7 +9,6 @@
 #   hubot xero member delete <slack name> - Removes user access to submit reimbursements
 #
 # Config:
-#   HUBOT_XERO_CONTACT_ID
 #   HUBOT_XERO_CONSUMER_KEY
 #   HUBOT_XERO_CONSUMER_SECRET
 #
@@ -27,55 +26,6 @@ xero = try
   new Xero(process.env.HUBOT_XERO_CONSUMER_KEY, process.env.HUBOT_ENV_CONSUMER_SECRET, private_key);
 catch e
   null
-
-# submitReceipt = (robot, res, receipt_id) ->
-#   res.send "Step 3: Submitting receipt for reimbursement..."
-#   res.send "Success! You should receive a check for $#{res.reimbursement_amount} in a couple of days. You can track progress on https://xero.com"
-
-
-# createReceipt = (robot, res, description, amount, budget) ->
-#   res.send "Step 1: Creating receipt in xero..."
-#   uploadImage(robot, res, "blah")
-
-# handleImageMessage = (robot, res) ->
-#   if not res.message.user['xero-identifier']?
-#     res.send "You haven't been added to xero just yet. Ask pkt-it"
-#     return
-#   comment_array = res.message?.rawMessage?.file?.initial_comment?.comment?.split('\n')
-#   if comment_array?.length != 3
-#     return badFormat(res)
-#   description = comment_array[0]
-#   amount = Number(comment_array[1].replace(/[^0-9\.]+/g,""))
-#   budget = comment_array[2]
-#   if isNaN(amount) or amount == 0
-#     return badFormat(res)
-#   res.reimbursement_amount = amount
-#   createReceipt(robot, res, description, amount, budget)
-
-# printBudgets = (robot, res) ->
-#   budgets = robot.brain.get('xero-budgets') or {}
-#   result = "We have the following budgets available. Please use the shorthand when referring to a budget.\n\n"
-#   for own shorthand, budget of budgets
-#     result += "*#{budget['shorthand']}*: #{budget['description']}\n"
-#   if Object.keys(budgets).length == 0
-#     result += "(No budgets)"
-#   res.send result
-#
-
-  # robot.respond /xero help$/i, (res) ->
-  #   res.send "Please upload receipt images in a direct message to me."
-  #   debugger;
-
-  # robot.respond /xero budgets load$/, (res) ->
-
-  # robot.respond /xero budgets$/, (res) ->
-  #   printBudgets(robot, res)
-
-
-  # robot.respond /(.*)/, (res) ->
-  #   if res.message?.rawMessage?.subtype != "file_share"
-  #     return
-  #   handleImageMessage robot, res
 
 callXero = (res, endpoint, callback) ->
   xero.call 'GET', endpoint, null, (err, json) ->
@@ -110,8 +60,13 @@ handleCancel = (robot, res, user) ->
 
 handleStartReimbursement = (robot, res, user, command, success) ->
   if command == 'start'
-    res.send 'Ok! How much is this reimbursement for? Respond with something similar to `xero $12.34`.'
+    res.send 'Ok! Who is this receipt from? Respond with something similar to `xero Star Market`'
     success()
+
+handleAddFrom = (robot, res, user, command, success) ->
+  user.xero_from = command
+  res.send 'How much is this reimbursement for? Respond with something similar to `xero $12.34`.'
+  success()
 
 handleAddAmount = (robot, res, user, command, success) ->
   amount = Number(command.replace(/[^0-9\.]+/g,""))
@@ -183,7 +138,7 @@ createDraftReceipt = (res, user, success) ->
   draft = {
     Date: dateformat(new Date(), 'yyyy-mm-dd'),
     Contact: {
-      ContactID: process.env.HUBOT_XERO_CONTACT_ID
+      Name: user.xero_from
     },
     LineAmountTypes: 'Inclusive',
     LineItems: {
@@ -278,18 +233,22 @@ stateTransition = (robot, res, user, command) ->
       robot.brain.userForName(user.name).xero_state = '2_reimbursement_started'
 
   else if user.xero_state == '2_reimbursement_started'
+    handleAddFrom robot, res, user, command, () ->
+      robot.brain.userForName(user.name).xero_state = '3_from_added'
+
+  else if user.xero_state == '3_from_added'
     handleAddAmount robot, res, user, command, () ->
-      robot.brain.userForName(user.name).xero_state = '3_amount_added'
+      robot.brain.userForName(user.name).xero_state = '4_amount_added'
 
-  else if user.xero_state == '3_amount_added'
+  else if user.xero_state == '4_amount_added'
     handleSelectBudget robot, res, user, command, () ->
-      robot.brain.userForName(user.name).xero_state = '4_budget_selected'
+      robot.brain.userForName(user.name).xero_state = '5_budget_selected'
 
-  else if user.xero_state == '4_budget_selected'
+  else if user.xero_state == '5_budget_selected'
     handleSelectType robot, res, user, command, () ->
-      robot.brain.userForName(user.name).xero_state = '5_type_selected'
+      robot.brain.userForName(user.name).xero_state = '6_type_selected'
 
-  else if user.xero_state == '5_type_selected'
+  else if user.xero_state == '6_type_selected'
     handleInputDescription robot, res, user, command, () ->
       submitReimbursement robot, res, robot.brain.userForName(user.name), () ->
         amount = robot.brain.userForName(user.name).xero_amount
