@@ -24,8 +24,11 @@ ankushify = (sentence) ->
       return "I put a " + words[i] + " in my butt last night"
   "Fuck you"
   
-
+channelDict = {}
+  
 module.exports = (robot) ->
-  robot.respond /ankushify (.+)/i, (res) ->
-    sentence = res.match[1]
-    res.send ankushify(sentence)
+  robot.respond /ankushify$/i, (res) ->
+    res.send ankushify(channelDict[res.message.room])
+  
+  robot.hear /.+/, (res) ->
+    channelDict[res.message.room] = res.message.text
