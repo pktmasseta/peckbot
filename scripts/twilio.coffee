@@ -12,6 +12,7 @@ module.exports = (robot) ->
 
   robot.router.post '/twilio/receive', (req, res) ->
     res.header('Content-Type','text/xml').send "<Response></Response>"
+    console.log req.body.AccountSid
     if req.body.AccountSid == process.env.HUBOT_TWILIO_ACCOUNT
       number = req.body.From
       message = req.body.Body
