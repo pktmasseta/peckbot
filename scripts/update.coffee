@@ -71,4 +71,7 @@ module.exports = (robot) ->
     update res, true, true
 
   robot.router.get '/restart', (req, res) ->
+    res.send "<html><body><form method='POST'><button>Restart peckbot</button></form></body></html>"
+
+  robot.router.post '/restart', (req, res) ->
     restart(res)
