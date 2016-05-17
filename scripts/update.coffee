@@ -69,3 +69,6 @@ module.exports = (robot) ->
 
   robot.respond /update( yourself)?$/i, (res) ->
     update res, true, true
+
+  robot.router.get '/restart', (req, res) ->
+    restart(res)
