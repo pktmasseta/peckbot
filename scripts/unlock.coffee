@@ -19,11 +19,20 @@ module.exports = (robot) ->
   makeURL = (user) ->
     "#{config('url')}?key=#{config('key')}&action=#{config('action')}&username=#{user}"
 
-  robot.respond /unlock/i, (res) ->
-    user = res.message.user.name.toLowerCase()
+  unlock = (user, res) ->
     robot.http(makeURL(user)).get() (err, response, body) ->
       if err or response.statusCode isnt 200
         res.send "Something went wrong trying to unlock the door"
         return
       res.send "Door unlocked."
+
+  robot.respond /unlock/i, (res) ->
+    user = res.message.user.name.toLowerCase()
+    unlock(user, res)
+
+  robot.router.post '/unlock/:secret', (req, res) ->
+    if req.params.secret == process.env.HUBOT_SCRIPTS_SECRET
+      unlock('web', res)
+    else
+      res.send "That isn't the correct secret"
 

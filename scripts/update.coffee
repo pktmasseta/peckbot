@@ -70,8 +70,8 @@ module.exports = (robot) ->
   robot.respond /update( yourself)?$/i, (res) ->
     update res, true, true
 
-  robot.router.get '/restart', (req, res) ->
-    res.send "<html><body><form method='POST'><button>Restart peckbot</button></form></body></html>"
-
-  robot.router.post '/restart', (req, res) ->
-    restart(res)
+  robot.router.post '/restart/:secret', (req, res) ->
+    if req.params.secret == process.env.HUBOT_SCRIPTS_SECRET
+      restart(res)
+    else
+      res.send "That isn't the correct secret"
