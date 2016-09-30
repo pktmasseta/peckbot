@@ -7,10 +7,33 @@
 # Author:
 #   Detry322
 
+waitingForIota = false
+
 randomInt = (low, high) ->
   Math.floor(Math.random() * (high - low) + low);
 
 module.exports = (robot) ->
+
+
+  chantParts = [
+    "PHI",
+    "IOTA",
+    "KAPPA",
+    "ALPHA",
+    "PI",
+    "PI",
+    "ALPHA",
+    "THETA",
+    "ETA",
+    "TAU",
+    "ALPHA",
+    "GOD IN COLLEGE",
+    "GOD IN COLLEGE",
+    "PHI",
+    "KAPPA",
+    "THETA",
+    "HO!!!"
+  ]
 
   lennySnakeParts = [
     "╚═( ͡° ͜ʖ ͡°)═╝",
@@ -34,6 +57,22 @@ module.exports = (robot) ->
   ]
 
   lennySnakeTick = 300 # milliseconds
+  chantTick = 300
+
+  robot.hear /\bPHI\b/, (res) ->
+    res.send "PHI"
+    waitingForIota = true
+    setTimeout(() ->
+      waitingForIota = false
+    , 4000)
+
+  robot.hear /\bIOTA\b/, (res) ->
+    if waitingForIota
+      sendFrom = (i) ->
+        if i < chantParts.length
+          res.send chantParts[i]
+          setTimeout, sendFrom, lennySnakeTick, i + 1
+      sendFrom 2
 
   robot.hear /lennysnake/i, (res) ->
     sendFrom = (i) ->
