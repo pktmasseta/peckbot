@@ -71,7 +71,7 @@ module.exports = (robot) ->
       sendFrom = (i) ->
         if i < chantParts.length
           res.send chantParts[i]
-          setTimeout, sendFrom, lennySnakeTick, i + 1
+          setTimeout sendFrom, lennySnakeTick, i + 1
       sendFrom 2
 
   robot.hear /lennysnake/i, (res) ->
