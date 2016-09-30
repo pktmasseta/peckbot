@@ -1,3 +1,4 @@
+module.exports = (robot) ->
   robot.hear /(PHI)/i, (res) ->
     res.send "PHI"
     robot.hear /(IOTA)/i, (res) ->
