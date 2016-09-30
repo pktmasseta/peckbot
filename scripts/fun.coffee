@@ -68,11 +68,12 @@ module.exports = (robot) ->
 
   robot.hear /\bIOTA\b/, (res) ->
     if waitingForIota
+      res.send "IOTA"
       sendFrom = (i) ->
         if i < chantParts.length
           res.send chantParts[i]
           setTimeout sendFrom, lennySnakeTick, i + 1
-      sendFrom 2
+      setTimeout sendFrom, 1200, 2
 
   robot.hear /lennysnake/i, (res) ->
     sendFrom = (i) ->
