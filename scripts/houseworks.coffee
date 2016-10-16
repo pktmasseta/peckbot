@@ -48,6 +48,8 @@ parseSchedule = () ->
 schedule = parseSchedule()
 
 formatDict = (robot, dict, ping) ->
+  if not dict
+    return "No houseworks found for that week."
   result = "*Houseworks for #{dict['date']}*\n\n"
   for key, value of dict
     if key == 'date'
@@ -70,14 +72,15 @@ findWeek = (day) ->
     if (time - day) > -24*60*60*1000*2 and (time - day) <= -24*60*60*1000*5
       return elem
 
+
 module.exports = (robot) ->
 
   robot.respond /houseworks$/i, (res) ->
-    day = new Date()
+    day = moment(new Date())
     res.send formatDict(robot, findWeek(day), false)
 
   robot.respond /houseworks ping$/i, (res) ->
-    day = new Date()
+    day = moment(new Date())
     res.send formatDict(robot, findWeek(day), true)
 
   robot.respond /houseworks get (.+)$/i, (res) ->
