@@ -38,13 +38,11 @@ parseSchedule = () ->
   result = []
   for s in splitted
     stuff = s.split(',')
-    text_date = stuff.shift()
-    date = moment(text_date)
     other_result = {}
-    other_result['date'] = text_date
+    other_result['date'] = stuff.shift()
     for _, i in stuff
       other_result[titles[i]] = stuff[i]
-    result.push([date, other_result])
+    result.push(other_result)
   return result
 
 schedule = parseSchedule()
@@ -67,10 +65,10 @@ formatDict = (robot, dict, ping) ->
   return result.trim()
 
 findWeek = (day) ->
-  for elem of schedule
-    time = elem[0]
+  for elem in schedule
+    time = chrono.parseDate(elem['date'])
     if (time - day) > -24*60*60*1000*2 and (time - day) <= -24*60*60*1000*5
-      return elem[1]
+      return elem
 
 module.exports = (robot) ->
 
