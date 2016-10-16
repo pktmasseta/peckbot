@@ -71,6 +71,7 @@ findWeek = (day) ->
   for elem in schedule
     time = chrono.parseDate(elem['date'])
     console.log(time)
+    console.log((time - day))
     if (time - day) > -24*60*60*1000*2 and (time - day) <= -24*60*60*1000*5
       console.log('returning')
       return elem
