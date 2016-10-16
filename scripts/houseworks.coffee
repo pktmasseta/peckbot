@@ -36,7 +36,7 @@ parseSchedule = () ->
   titles = splitted.shift().split(',')
   titles.shift()
   result = []
-  for s in array
+  for s in splitted
     stuff = s.split(',')
     text_date = stuff.shift()
     date = moment(text_date)
