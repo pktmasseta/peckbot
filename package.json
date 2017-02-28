@@ -9,7 +9,6 @@
   },
   "dependencies": {
     "chrono-node": "^1.0.8",
-    "express": "^3.21.2",
     "google-auth-library": "^0.9.6",
     "googleapis": "^2.1.5",
     "hubot": "^2.12.0",
