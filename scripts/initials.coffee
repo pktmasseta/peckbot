@@ -2,7 +2,7 @@
 #   Gets the initials of brothers in PKT
 #
 # Commands:
-#   hubot initials add <initials> <year> <name> - Adds person to initials database
+#   hubot initials add <initials> <year> <slack_name> - Adds person to initials database
 #   hubot initials get <initials> - Returns the person with the given initials.
 #   hubot initials get <username> - Returns the person wtih the given slack username.
 #
@@ -55,7 +55,7 @@ module.exports = (robot) ->
       else
         res.send "No one with initials #{initials} exists."
 
-  robot.respond /initials get ([a-z0-9_\-]+)$/, (res) ->
+  robot.respond /initials get @?([a-z0-9_\-]+)$/, (res) ->
     slack_name = res.match[1]
     user = robot.brain.userForName(slack_name)
     if user? and user['matched']
