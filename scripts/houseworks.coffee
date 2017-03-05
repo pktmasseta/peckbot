@@ -101,6 +101,21 @@ module.exports = (robot) ->
             result += row.brother + ' - ' + houseworkToString(row) + '\n'
         res.send result
 
+    robot.respond /ticket (.+)$/i, (res) ->
+      getSpreadsheet 'Tickets', (err, sheet) ->
+        if err
+          return res.send err
+        newRow = {
+          timestamp: moment().format('M/D/YYYY H:mm:ss'),
+          priority: "Unassigned",
+          broken: res.match[1],
+          initials: res.message.user.initials
+        }
+        sheet.addRow newRow, (err) ->
+          if err
+            return res.send err
+          res.send "I've marked down that: *#{res.match[1]}*"
+
     cron.schedule config('reminder'), () ->
       getSpreadsheetRows 'Houseworks', (err, rows) ->
         if err?
