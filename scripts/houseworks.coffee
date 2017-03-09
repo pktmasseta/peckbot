@@ -117,6 +117,16 @@ module.exports = (robot) ->
             result += row.brother + ' - ' + houseworkToString(row) + '\n'
         res.send result
 
+    robot.respond /houseworks? me$/i, (res) ->
+      getSpreadsheetRows 'Houseworks', (err, rows) ->
+        if err?
+          return res.send err
+        result = "*== Houseworks for #{res.message.user.name} ==*\n\n"
+        for row in rows
+          if row.brother == res.message.user.initials
+            result += houseworkToString(row) + '\n'
+        res.send result
+
     robot.respond /ticket (.+)$/i, (res) ->
       getSpreadsheet 'Tickets', (err, sheet) ->
         if err
