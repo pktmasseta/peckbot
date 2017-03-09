@@ -73,8 +73,14 @@ module.exports = (robot) ->
     dueDate = (row) ->
       return new Date(+(new Date(row.date)) + 24*60*60*1000*(+(row.ext) + 1) - 1)
 
-    isActive = (row) ->
-      return row.completed == 'no' and row.brother != '' and (dueDate(row) - new Date()) < 8*24*60*60*1000
+    isActive = (row, days) ->
+      return row.completed.toLowerCase() == 'no' and row.brother != '' and (dueDate(row) - new Date()) < days*24*60*60*1000
+
+    isHousework = (row) ->
+      return row.type.toLowerCase() == 'housework'
+
+    isQuickwork = (row) ->
+      return row.type.toLowerCase() == 'quickwork'
 
     houseworkToString = (row) ->
       s = "*#{row.work}*: Due _#{moment(dueDate(row)).calendar()}_"
@@ -97,7 +103,17 @@ module.exports = (robot) ->
           return res.send err
         result = "*== Upcoming houseworks ==*\n\n"
         for row in rows
-          if isActive(row)
+          if isActive(row, 8) and isHousework(row)
+            result += row.brother + ' - ' + houseworkToString(row) + '\n'
+        res.send result
+
+    robot.respond /quickworks? upcoming$/i, (res) ->
+      getSpreadsheetRows 'Houseworks', (err, rows) ->
+        if err?
+          return res.send err
+        result = "*== Upcoming quickworks ==*\n\n"
+        for row in rows
+          if isActive(row, 5) and isQuickwork(row)
             result += row.brother + ' - ' + houseworkToString(row) + '\n'
         res.send result
 
@@ -116,11 +132,21 @@ module.exports = (robot) ->
             return res.send err
           res.send "I've marked down that: *#{res.match[1]}*"
 
-    cron.schedule config('reminder'), () ->
+    cron.schedule config('reminder.houseworks'), () ->
       getSpreadsheetRows 'Houseworks', (err, rows) ->
         if err?
           return
         for row in rows
-          if isActive(row)
-            message = "Housework reminder: " + houseworkToString(row)
+          if isActive(row, 8) and isHousework(row)
+            message = "Housework reminder: #{houseworkToString(row)}\n\nIf needed, ask the housework manager for an automatic 1-day extension, or about other questions."
+            robot.messageRoom robot.brain.userForInitials(row.brother).name, 
+
+
+    cron.schedule config('reminder.quickworks'), () ->
+      getSpreadsheetRows 'Houseworks', (err, rows) ->
+        if err?
+          return
+        for row in rows
+          if isActive(row, 5) and isQuickwork(row)
+            message = "Quickwork reminder: " + houseworkToString(row) + "\n\nYou cannot be given an extension for quickworks. If you are unable, find another brother to substitute."
             robot.messageRoom robot.brain.userForInitials(row.brother).name, message
