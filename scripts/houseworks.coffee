@@ -121,9 +121,9 @@ module.exports = (robot) ->
       getSpreadsheetRows 'Houseworks', (err, rows) ->
         if err?
           return res.send err
-        result = "*== Houseworks for #{res.message.user.name} ==*\n\n"
+        result = "*== Houseworks for #{res.message.user.initials} ==*\n\n"
         for row in rows
-          if row.brother == res.message.user.initials
+          if row.brother == res.message.user.initials and (new Date(row.date)) > new Date()
             result += houseworkToString(row) + '\n'
         res.send result
 
