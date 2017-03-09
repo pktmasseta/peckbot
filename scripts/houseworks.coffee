@@ -130,7 +130,7 @@ module.exports = (robot) ->
           return res.send err
         result = "*== Houseworks for #{person} ==*\n\n"
         for row in rows
-          if row.brother == person and new Date(+(new Date(row.date)) + 24*60*60*1000) > new Date()
+          if row.brother == person and isActive(row, 1000)
             result += houseworkToString(row) + '\n'
         res.send result
 
