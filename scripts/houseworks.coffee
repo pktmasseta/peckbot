@@ -83,7 +83,7 @@ module.exports = (robot) ->
       return row.type.toLowerCase() == 'quickwork'
 
     houseworkToString = (row) ->
-      s = "*#{row.work}*: Due _#{moment(dueDate(row)).calendar()}_"
+      s = "*#{row.work}* (#{row.type}): Due _#{moment(dueDate(row)).calendar()}_"
       if (+row.ext) > 0
         s += " (date includes a #{row.ext}-day extension)"
       return s
