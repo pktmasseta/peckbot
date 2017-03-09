@@ -2,8 +2,10 @@
 #   Hubot houseworks reminder system
 #
 # Commands:
+#   hubot housework(s) me - gets your upcoming houseworks
 #   hubot housework(s) statistics - gets statistics on how long houseworks take.
 #   hubot housework(s) upcoming - gets the upcoming houseworks
+#   hubot quickwork(s) upcoming - gets the upcoming quickworks
 #   hubot houseworks 
 #
 # Configuration:
