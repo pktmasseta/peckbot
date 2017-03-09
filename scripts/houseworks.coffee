@@ -125,7 +125,7 @@ module.exports = (robot) ->
           return res.send err
         result = "*== Houseworks for #{res.message.user.initials} ==*\n\n"
         for row in rows
-          if row.brother == res.message.user.initials and (new Date(row.date)) > new Date()
+          if row.brother == res.message.user.initials and new Date(+(new Date(row.date)) + 24*60*60*1000) > new Date()
             result += houseworkToString(row) + '\n'
         res.send result
 
