@@ -91,7 +91,7 @@ module.exports = (robot) ->
         s += " (date includes a #{row.ext}-day extension)"
       return s
 
-    robot.respnd /houseworks?$/i, (res) ->
+    robot.respond /houseworks? link$/i, (res) ->
       res.send "https://docs.google.com/spreadsheets/d/#{config('spreadsheet')}/edit"
 
     robot.respond /houseworks? statistics$/i, (res) ->
@@ -125,7 +125,7 @@ module.exports = (robot) ->
 
     robot.respond /houseworks?($| [A-Z]{3}$)/i, (res) ->
       getSpreadsheetRows 'Houseworks', (err, rows) ->
-        person = if res.match[1] == '' then res.message.user.initials else res.match[1].trim()
+        person = if res.match[1] == '' then res.message.user.initials else res.match[1].trim().toUpperCase()
         if err?
           return res.send err
         result = "*== Houseworks for #{person} ==*\n\n"
