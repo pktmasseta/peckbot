@@ -2,11 +2,12 @@
 #   Hubot houseworks reminder system
 #
 # Commands:
-#   hubot housework(s) me - gets your upcoming houseworks
+#   hubot housework(s) - gets your upcoming houseworks
+#   hubot housework(s) XXX - gets XXX's upcoming houseworks
 #   hubot housework(s) statistics - gets statistics on how long houseworks take.
 #   hubot housework(s) upcoming - gets the upcoming houseworks
 #   hubot quickwork(s) upcoming - gets the upcoming quickworks
-#   hubot houseworks 
+#   hubot houseworks link - return master spreadsheet link
 #
 # Configuration:
 #   HUBOT_HOUSEWORKS_SPREADSHEET - spreadsheet ID of master H-man
@@ -90,6 +91,9 @@ module.exports = (robot) ->
         s += " (date includes a #{row.ext}-day extension)"
       return s
 
+    robot.respnd /houseworks?$/i, (res) ->
+      res.send "https://docs.google.com/spreadsheets/d/#{config('spreadsheet')}/edit"
+
     robot.respond /houseworks? statistics$/i, (res) ->
       getSpreadsheetRows 'Statistics', (err, rows) ->
         if err?
@@ -119,13 +123,14 @@ module.exports = (robot) ->
             result += row.brother + ' - ' + houseworkToString(row) + '\n'
         res.send result
 
-    robot.respond /houseworks? me$/i, (res) ->
+    robot.respond /houseworks?($| [A-Z]{3}$)/i, (res) ->
       getSpreadsheetRows 'Houseworks', (err, rows) ->
+        person = if res.match[1] == '' then res.message.user.initials else res.match[1].trim()
         if err?
           return res.send err
-        result = "*== Houseworks for #{res.message.user.initials} ==*\n\n"
+        result = "*== Houseworks for #{person} ==*\n\n"
         for row in rows
-          if row.brother == res.message.user.initials and new Date(+(new Date(row.date)) + 24*60*60*1000) > new Date()
+          if row.brother == person and new Date(+(new Date(row.date)) + 24*60*60*1000) > new Date()
             result += houseworkToString(row) + '\n'
         res.send result
 
