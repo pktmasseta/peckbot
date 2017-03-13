@@ -113,6 +113,17 @@ module.exports = (robot) ->
             result += row.brother + ' - ' + houseworkToString(row) + '\n'
         res.send result
 
+    robot.respond /houseworks? ping$/i, (res) ->
+      getSpreadsheetRows 'Houseworks', (err, rows) ->
+        if err?
+          return res.send err
+        result = "*== Houseworks due in less than 24 hours: ==*\n\n"
+        for row in rows
+          if isActive(row, 1) and isHousework(row)
+            slack = robot.brain.userForInitials(row.brother)['name']
+            result +=  "<@#{slack}> - " + houseworkToString(row) + '\n'
+        res.send result
+
     robot.respond /quickworks? upcoming$/i, (res) ->
       getSpreadsheetRows 'Houseworks', (err, rows) ->
         if err?
