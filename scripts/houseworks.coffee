@@ -149,14 +149,17 @@ module.exports = (robot) ->
             return res.send err
           res.send "I've marked down that: *#{res.match[1]}*"
 
+
     cron.schedule config('reminder.houseworks'), () ->
       getSpreadsheetRows 'Houseworks', (err, rows) ->
         if err?
           return
+        robot.messageRoom "jackserrino", "Sending pings..." #Remove eventaully
         for row in rows
           if isActive(row, 8) and isHousework(row)
             message = "Housework reminder: #{houseworkToString(row)}\n\nIf needed, ask the housework manager for an automatic 1-day extension, or about other questions."
-            robot.messageRoom robot.brain.userForInitials(row.brother).name, 
+            robot.messageRoom robot.brain.userForInitials(row.brother).name, message
+        robot.messageRoom "jackserrino", "Finished pings." # Remove eventaully
 
 
     cron.schedule config('reminder.quickworks'), () ->
