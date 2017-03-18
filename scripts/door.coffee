@@ -39,8 +39,9 @@ module.exports = (robot) ->
         res.send response.statusCode
         res.send "Something went wrong trying to register that user"
         return
-      res.send "Added #{name}"
-      robot.messageRoom config('announce'), "#{res.message.user.name} added *#{user}*'s card to the door unlock system."
+      res.send response.text
+      res.send "Added #{name}'s card to the door unlock"
+      robot.messageRoom config('announce'), "#{res.message.user.name} added *#{name}*'s card to the door unlock system."
 
   robot.respond /(door )?unlock/i, (res) ->
     user = res.message.user.name.toLowerCase()
@@ -48,9 +49,9 @@ module.exports = (robot) ->
     unlock(user, res)
 
   robot.respond /door register(.*)$/i, (res) ->
-    res.send "You are registering the most recently tapped card. Make sure that the most recently tapped card is the person you want to register.\n\nIf you are sure, use `peckbot door actuallyregister <person's name>`"
+    res.send "You are registering *the most recently tapped card*. Make sure that the most recently tapped card is the person you want to register.\n\nIf you are sure, use `peckbot door actually register <person's name>`"
 
-  robot.respond /door actuallyregister (.+)$/i, (res) ->
+  robot.respond /door actually register (.+)$/i, (res) ->
     user = res.match[1]
     register(user, res)
 
