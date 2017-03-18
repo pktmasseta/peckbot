@@ -39,7 +39,7 @@ module.exports = (robot) ->
         res.send response.statusCode
         res.send "Something went wrong trying to register that user"
         return
-      res.send response.text
+      res.send body
       res.send "Added #{name}'s card to the door unlock"
       robot.messageRoom config('announce'), "#{res.message.user.name} added *#{name}*'s card to the door unlock system."
 
