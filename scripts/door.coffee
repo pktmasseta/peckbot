@@ -30,7 +30,6 @@ module.exports = (robot) ->
       if err or response.statusCode isnt 200
         res.send "Something went wrong trying to unlock the door"
         return
-      res.send "Door unlocked."
 
   register = (name, res) ->
     exp_date = moment().add(2, 'years').format('YYYY-MM-DD')
@@ -45,9 +44,10 @@ module.exports = (robot) ->
 
   robot.respond /(door )?unlock/i, (res) ->
     user = res.message.user.name.toLowerCase()
+    res.send "Unlocking door..."
     unlock(user, res)
 
-  robot.respond /door register( .*)$/i, (res) ->
+  robot.respond /door register(.*)$/i, (res) ->
     res.send "You are registering the most recently tapped card. Make sure that the most recently tapped card is the person you want to register.\n\nIf you are sure, use `peckbot door actuallyregister <person's name>`"
 
   robot.respond /door actuallyregister (.+)$/i, (res) ->
