@@ -35,12 +35,12 @@ module.exports = (robot) ->
   register = (name, res) ->
     data = QS.stringify({
       first_name: name,
-      last_name: "",
+      last_name: "-",
       affiliation: "peckbot",
       exp_date: moment().add(2, 'years').format('YYYY-MM-DD'),
       auth_key: config('registerkey')
     })
-    robot.http("#{config('url')}/add_handler.php").post(data) (err, response, body) ->
+    robot.http("#{config('url')}/add_handler.php").headers('content-type', 'application/x-www-form-urlencoded').post(data) (err, response, body) ->
       if err or response.statusCode isnt 200
         res.send response.statusCode
         res.send "Something went wrong trying to register that user"
