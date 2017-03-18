@@ -40,14 +40,12 @@ module.exports = (robot) ->
       exp_date: moment().add(2, 'years').format('YYYY-MM-DD'),
       auth_key: config('registerkey')
     })
-    robot.http("#{config('url')}/add_handler.php").headers('content-type', 'application/x-www-form-urlencoded').post(data) (err, response, body) ->
-      if err or response.statusCode isnt 200
-        res.send response.statusCode
-        res.send "Something went wrong trying to register that user"
+    robot.http("#{config('url')}/add_handler.php").header('Content-Type', 'application/x-www-form-urlencoded').post(data) (err, response, body) ->
+      if err or response.statusCode isnt 302
+        res.send "Something went wrong trying to register #{name}'s card"
         return
-      res.send body
       res.send "Added #{name}'s card to the door unlock"
-      # robot.messageRoom config('announce'), "#{res.message.user.name} added *#{name}*'s card to the door unlock system."
+      robot.messageRoom config('announce'), "#{res.message.user.name} added *#{name}*'s card to the door unlock system."
 
   robot.respond /(door )?unlock/i, (res) ->
     user = res.message.user.name.toLowerCase()
