@@ -17,6 +17,7 @@
 #   Detry322
 
 moment = require('moment')
+QS = require('querystring')
 
 module.exports = (robot) ->
 
