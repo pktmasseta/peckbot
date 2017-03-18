@@ -32,8 +32,13 @@ module.exports = (robot) ->
         return
 
   register = (name, res) ->
-    exp_date = moment().add(2, 'years').format('YYYY-MM-DD')
-    data = "first_name=#{name}&last_name=&affiliation=peckbot&exp_date=#{exp_date}&auth_key=#{config('registerkey')}"
+    data = QS.stringify({
+      first_name: name,
+      last_name: "",
+      affiliation: "peckbot",
+      exp_date: moment().add(2, 'years').format('YYYY-MM-DD'),
+      auth_key: config('registerkey')
+    })
     robot.http("#{config('url')}/add_handler.php").post(data) (err, response, body) ->
       if err or response.statusCode isnt 200
         res.send response.statusCode
@@ -41,7 +46,7 @@ module.exports = (robot) ->
         return
       res.send body
       res.send "Added #{name}'s card to the door unlock"
-      robot.messageRoom config('announce'), "#{res.message.user.name} added *#{name}*'s card to the door unlock system."
+      # robot.messageRoom config('announce'), "#{res.message.user.name} added *#{name}*'s card to the door unlock system."
 
   robot.respond /(door )?unlock/i, (res) ->
     user = res.message.user.name.toLowerCase()
