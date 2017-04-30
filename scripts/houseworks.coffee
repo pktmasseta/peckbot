@@ -160,18 +160,27 @@ module.exports = (robot) ->
             return res.send err
           res.send "I've marked down that: *#{res.match[1]}*"
 
+    delayLoop = (elements, delay, fn, finish) ->
+      setTimeout(() ->
+        if elements.length is 0
+          return finish()
+        fn(elements[0])
+        return delayLoop(elements[1..], delay, fn, finish)
+      , delay)
 
     cron.schedule config('reminder.houseworks'), () ->
       getSpreadsheetRows 'Houseworks', (err, rows) ->
-        robot.messageRoom "jackserrino", "Sending houework pings..." #Remove eventaully
+        robot.messageRoom "jackserrino", "Sending housework pings..." #Remove eventaully
         if err?
           robot.messageRoom "jackserrino", "Pings were unable to be sent: #{err}"
           return
-        for row in rows
+        delayLoop(rows, 1000, (row) ->
           if isActive(row, 8) and isHousework(row)
             message = "Housework reminder: #{houseworkToString(row)}\n\nIf needed, ask the housework manager for an automatic 1-day extension, or about other questions."
             robot.messageRoom robot.brain.userForInitials(row.brother).name, message
-        robot.messageRoom "jackserrino", "Finished pings." # Remove eventaully
+        , () ->
+          robot.messageRoom "jackserrino", "Finished housework pings." # Remove eventaully
+        )
 
 
     cron.schedule config('reminder.quickworks'), () ->
@@ -180,8 +189,10 @@ module.exports = (robot) ->
         if err?
           robot.messageRoom "jackserrino", "Pings were unable to be sent: #{err}"
           return
-        for row in rows
+        delayLoop(rows, 1000, (row) ->
           if isActive(row, 5) and isQuickwork(row)
             message = "Quickwork reminder: " + houseworkToString(row) + "\n\nYou cannot be given an extension for quickworks. If you are unable, find another brother to substitute."
             robot.messageRoom robot.brain.userForInitials(row.brother).name, message
-        robot.messageRoom "jackserrino", "Finished quickwork pings." #Remove eventaully
+        , () ->
+          robot.messageRoom "jackserrino", "Finished quickwork pings." #Remove eventaully
+        )
