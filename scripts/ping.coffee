@@ -12,6 +12,6 @@ replaceInitials = (users, message) ->
 
 module.exports = (robot) ->
 
-  robot.hear /ping ((.*\s*)+)/, (res) ->
+  robot.respond /ping ((.*\s*)+)/, (res) ->
     res.send(replaceInitials(robot.brain.data.users, res.match[1]))
 
