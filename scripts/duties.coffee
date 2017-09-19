@@ -88,64 +88,37 @@ module.exports = (robot) ->
     isQuickwork = (row) ->
       return row.type.toLowerCase() == 'quickwork'
 
-    houseworkToString = (row) ->
+    dutyToString = (row) ->
       s = "*#{row.work}* (#{row.type}): Due _#{moment(dueDate(row)).calendar()}_"
       if (+row.ext) > 0
         s += " (date includes a #{row.ext}-day extension)"
       return s
 
-    robot.respond /houseworks? link$/i, (res) ->
+    robot.respond /houseworks?(.+)$/i, (res) ->
+      res.send "Please use `peckbot duties#{res.match[1]}` instead."
+
+    robot.respond /duties link$/i, (res) ->
       res.send "https://docs.google.com/spreadsheets/d/#{config('spreadsheet')}/edit"
 
-    robot.respond /houseworks? statistics$/i, (res) ->
-      getSpreadsheetRows 'Statistics', (err, rows) ->
-        if err?
-          return res.send err
-        result = "*==Housework Statistics==*\n\n"
-        for row in rows
-          result += "*#{row.housework}*: #{row.averagetime} minutes avg.\n"
-        res.send result
-
-    robot.respond /houseworks? upcoming$/i, (res) ->
+    robot.respond /duties upcoming$/i, (res) ->
       getSpreadsheetRows DUTIES_SPREADSHEET_NAME, (err, rows) ->
         if err?
           return res.send err
-        result = "*== Upcoming houseworks ==*\n\n"
+        result = "*== Upcoming duties ==*\n\n"
         for row in rows
-          if isActive(row, 8) and isHousework(row)
-            result += row.brother + ' - ' + houseworkToString(row) + '\n'
+          if isActive(row, 5)
+            result += row.brother + ' - ' + dutyToString(row) + '\n'
         res.send result
 
-    robot.respond /houseworks? ping$/i, (res) ->
-      getSpreadsheetRows DUTIES_SPREADSHEET_NAME, (err, rows) ->
-        if err?
-          return res.send err
-        result = "*== Houseworks due in less than 24 hours: ==*\n\n"
-        for row in rows
-          if isActive(row, 1) and isHousework(row)
-            slack = robot.brain.userForInitials(row.brother)['name']
-            result +=  "<@#{slack}> - " + houseworkToString(row) + '\n'
-        res.send result
-
-    robot.respond /quickworks? upcoming$/i, (res) ->
-      getSpreadsheetRows DUTIES_SPREADSHEET_NAME, (err, rows) ->
-        if err?
-          return res.send err
-        result = "*== Upcoming quickworks ==*\n\n"
-        for row in rows
-          if isActive(row, 5) and isQuickwork(row)
-            result += row.brother + ' - ' + houseworkToString(row) + '\n'
-        res.send result
-
-    robot.respond /houseworks?($| [A-Z]{3}$)/i, (res) ->
+    robot.respond /duties?($| [A-Z]{3}$)/i, (res) ->
       getSpreadsheetRows DUTIES_SPREADSHEET_NAME, (err, rows) ->
         person = if res.match[1] == '' then res.message.user.initials else res.match[1].trim().toUpperCase()
         if err?
           return res.send err
-        result = "*== Houseworks for #{person} ==*\n\n"
+        result = "*== Duties for #{person} ==*\n\n"
         for row in rows
           if row.brother == person and isActive(row, 1000)
-            result += houseworkToString(row) + '\n'
+            result += dutyToString(row) + '\n'
         res.send result
 
     robot.respond /ticket (.+)$/i, (res) ->
@@ -165,7 +138,7 @@ module.exports = (robot) ->
 
     delayLoop = (elements, delay, fn, finish) ->
       setTimeout(() ->
-        if elements.length is 0
+        if elements.length is 0 and finish
           return finish()
         fn(elements[0])
         return delayLoop(elements[1..], delay, fn, finish)
@@ -173,29 +146,19 @@ module.exports = (robot) ->
 
     cron.schedule config('reminder.houseworks'), () ->
       getSpreadsheetRows DUTIES_SPREADSHEET_NAME, (err, rows) ->
-        # robot.messageRoom "jackserrino", "Sending housework pings..." #Remove eventaully
         if err?
-          # robot.messageRoom "jackserrino", "Pings were unable to be sent: #{err}"
           return
-        delayLoop(rows, 1000, (row) ->
+        delayLoop rows, 1000, (row) ->
           if isActive(row, 8) and isHousework(row)
-            message = "Housework reminder: #{houseworkToString(row)}\n\nIf needed, ask the housework manager for an automatic 1-day extension, or about other questions."
+            message = "Housework reminder: #{dutyToString(row)}\n\nIf needed, ask the housework manager for an automatic 1-day extension, or about other questions."
             robot.messageRoom robot.brain.userForInitials(row.brother).name, message
-        , () ->
-          # robot.messageRoom "jackserrino", "Finished housework pings." # Remove eventaully
-        )
 
 
     cron.schedule config('reminder.quickworks'), () ->
       getSpreadsheetRows DUTIES_SPREADSHEET_NAME, (err, rows) ->
-        # robot.messageRoom "jackserrino", "Sending quickwork pings..." #Remove eventaully
         if err?
-          # robot.messageRoom "jackserrino", "Pings were unable to be sent: #{err}"
           return
-        delayLoop(rows, 1000, (row) ->
+        delayLoop rows, 1000, (row) ->
           if isActive(row, 5) and isQuickwork(row)
-            message = "Quickwork reminder: " + houseworkToString(row) + "\n\nYou cannot be given an extension for quickworks. If you are unable, find another brother to substitute."
+            message = "Quickwork reminder: " + dutyToString(row) + "\n\nYou cannot be given an extension for quickworks. If you are unable, find another brother to substitute."
             robot.messageRoom robot.brain.userForInitials(row.brother).name, message
-        , () ->
-          # robot.messageRoom "jackserrino", "Finished quickwork pings." #Remove eventaully
-        )
