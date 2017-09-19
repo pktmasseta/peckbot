@@ -21,6 +21,9 @@ moment = require('moment')
 GoogleSpreadsheet = require 'google-spreadsheet';
 cron = require 'node-cron';
 
+DUTIES_SPREADSHEET_NAME = 'Duties'
+TICKETS_SPREADSHEET_NAME = 'Tickets'
+
 loadAuth = (callback) ->
   if credentials_json?
     return callback(null, credentials_json)
@@ -104,7 +107,7 @@ module.exports = (robot) ->
         res.send result
 
     robot.respond /houseworks? upcoming$/i, (res) ->
-      getSpreadsheetRows 'Houseworks', (err, rows) ->
+      getSpreadsheetRows DUTIES_SPREADSHEET_NAME, (err, rows) ->
         if err?
           return res.send err
         result = "*== Upcoming houseworks ==*\n\n"
@@ -114,7 +117,7 @@ module.exports = (robot) ->
         res.send result
 
     robot.respond /houseworks? ping$/i, (res) ->
-      getSpreadsheetRows 'Houseworks', (err, rows) ->
+      getSpreadsheetRows DUTIES_SPREADSHEET_NAME, (err, rows) ->
         if err?
           return res.send err
         result = "*== Houseworks due in less than 24 hours: ==*\n\n"
@@ -125,7 +128,7 @@ module.exports = (robot) ->
         res.send result
 
     robot.respond /quickworks? upcoming$/i, (res) ->
-      getSpreadsheetRows 'Houseworks', (err, rows) ->
+      getSpreadsheetRows DUTIES_SPREADSHEET_NAME, (err, rows) ->
         if err?
           return res.send err
         result = "*== Upcoming quickworks ==*\n\n"
@@ -135,7 +138,7 @@ module.exports = (robot) ->
         res.send result
 
     robot.respond /houseworks?($| [A-Z]{3}$)/i, (res) ->
-      getSpreadsheetRows 'Houseworks', (err, rows) ->
+      getSpreadsheetRows DUTIES_SPREADSHEET_NAME, (err, rows) ->
         person = if res.match[1] == '' then res.message.user.initials else res.match[1].trim().toUpperCase()
         if err?
           return res.send err
@@ -146,7 +149,7 @@ module.exports = (robot) ->
         res.send result
 
     robot.respond /ticket (.+)$/i, (res) ->
-      getSpreadsheet 'Tickets', (err, sheet) ->
+      getSpreadsheet TICKETS_SPREADSHEET_NAME, (err, sheet) ->
         if err
           return res.send err
         newRow = {
@@ -169,7 +172,7 @@ module.exports = (robot) ->
       , delay)
 
     cron.schedule config('reminder.houseworks'), () ->
-      getSpreadsheetRows 'Houseworks', (err, rows) ->
+      getSpreadsheetRows DUTIES_SPREADSHEET_NAME, (err, rows) ->
         # robot.messageRoom "jackserrino", "Sending housework pings..." #Remove eventaully
         if err?
           # robot.messageRoom "jackserrino", "Pings were unable to be sent: #{err}"
@@ -184,7 +187,7 @@ module.exports = (robot) ->
 
 
     cron.schedule config('reminder.quickworks'), () ->
-      getSpreadsheetRows 'Houseworks', (err, rows) ->
+      getSpreadsheetRows DUTIES_SPREADSHEET_NAME, (err, rows) ->
         # robot.messageRoom "jackserrino", "Sending quickwork pings..." #Remove eventaully
         if err?
           # robot.messageRoom "jackserrino", "Pings were unable to be sent: #{err}"
