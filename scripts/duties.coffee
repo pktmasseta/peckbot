@@ -1,13 +1,11 @@
 # Description:
-#   Hubot houseworks reminder system
+#   Hubot duties reminder system
 #
 # Commands:
-#   hubot housework(s) - gets your upcoming houseworks
-#   hubot housework(s) XXX - gets XXX's upcoming houseworks
-#   hubot housework(s) statistics - gets statistics on how long houseworks take.
-#   hubot housework(s) upcoming - gets the upcoming houseworks
-#   hubot quickwork(s) upcoming - gets the upcoming quickworks
-#   hubot houseworks link - return master spreadsheet link
+#   hubot duties - gets your upcoming duties
+#   hubot duties XXX - gets XXX's upcoming duties
+#   hubot duties upcoming - gets the upcoming houseworks
+#   hubot duties link - return master spreadsheet link
 #
 # Configuration:
 #   HUBOT_HOUSEWORKS_SPREADSHEET - spreadsheet ID of master H-man
@@ -22,6 +20,7 @@ GoogleSpreadsheet = require 'google-spreadsheet';
 cron = require 'node-cron';
 
 DUTIES_SPREADSHEET_NAME = 'Duties'
+INSTRUCTIONS_SPREADSHEET_NAME = 'Instructions'
 TICKETS_SPREADSHEET_NAME = 'Tickets'
 
 loadAuth = (callback) ->
@@ -34,7 +33,7 @@ loadAuth = (callback) ->
     callback(null, credentials_json)
 
 module.exports = (robot) ->
-    config = require('hubot-conf')('houseworks', robot)
+    config = require('hubot-conf')('duties', robot)
 
     spreadsheet_object = null
     spreadsheet_key = null
@@ -80,19 +79,32 @@ module.exports = (robot) ->
       return new Date(+(new Date(row.date)) + 24*60*60*1000*(+(row.ext) + 1) - 1)
 
     isActive = (row, days) ->
+      days = if days? then days else 10000
       return row.completed.toLowerCase() == 'no' and row.brother != '' and (dueDate(row) - new Date()) < days*24*60*60*1000
 
     isHousework = (row) ->
-      return row.type.toLowerCase() == 'housework'
+      return row.category.toLowerCase() == 'housework'
 
     isQuickwork = (row) ->
-      return row.type.toLowerCase() == 'quickwork'
+      return row.category.toLowerCase() == 'quickwork'
 
     dutyToString = (row) ->
-      s = "*#{row.work}* (#{row.type}): Due _#{moment(dueDate(row)).calendar()}_"
+      s = "*#{row.duty}* (#{row.category}): Due _#{moment(dueDate(row)).calendar()}_"
       if (+row.ext) > 0
         s += " (date includes a #{row.ext}-day extension)"
       return s
+
+    instructionToString = (row) ->
+      return "-- Instructions for the *#{row.duty}* _#{row.category}_ duty.\n#{row.instructions}"
+
+    remindPeople = (days_in_advance) ->
+      getSpreadsheetRows DUTIES_SPREADSHEET_NAME, (err, rows) ->
+        if err?
+          return
+        delayLoop rows, 500, (row) ->
+          if isActive(row, days_in_advance)
+            message = "*#{row.category}* reminder: #{dutyToString(row)}\n\nIf needed, ask the housework manager for an automatic 1-day extension, or about other questions."
+            robot.messageRoom robot.brain.userForInitials(row.brother).name, message
 
     robot.respond /houseworks?(.+)$/i, (res) ->
       res.send "Please use `peckbot duties#{res.match[1]}` instead."
@@ -110,6 +122,36 @@ module.exports = (robot) ->
             result += row.brother + ' - ' + dutyToString(row) + '\n'
         res.send result
 
+    robot.respond /duties instructions all$/i, (res) ->
+      getSpreadsheetRows INSTRUCTIONS_SPREADSHEET_NAME, (err, rows) ->
+        if err
+          return res.send err
+        result = ""
+        for row in rows
+          result += "#{instructionToString(row)}\n\n"
+        res.send result
+
+    robot.respond /duties instructions$/i, (res) ->
+      person = res.message.user.initials
+      getSpreadsheetRows DUTIES_SPREADSHEET_NAME, (err, duties) ->
+        if err?
+          return res.send err
+        duty = null
+        for row in duties
+          if row.brother == person and isActive(row)
+            duty = row
+            break
+        if not duty?
+          return res.send "You don't have any upcoming duties!"
+        getSpreadsheetRows INSTRUCTIONS_SPREADSHEET_NAME, (err, instruction_list) ->
+          if err?
+            return res.send err
+          for row in instruction_list
+            if row.category == duty.category and row.duty == duty.duty
+              res.send "*=== Upcoming housework instructions ===*\nFor: #{dutyToString(duty)}\n\n#{instructionToString(row)}"
+              return
+          res.send "Couldn't find any instructions for: #{dutyToString(duty)}"
+
     robot.respond /duties?($| [A-Z]{3}$)/i, (res) ->
       getSpreadsheetRows DUTIES_SPREADSHEET_NAME, (err, rows) ->
         person = if res.match[1] == '' then res.message.user.initials else res.match[1].trim().toUpperCase()
@@ -117,7 +159,7 @@ module.exports = (robot) ->
           return res.send err
         result = "*== Duties for #{person} ==*\n\n"
         for row in rows
-          if row.brother == person and isActive(row, 1000)
+          if row.brother == person and isActive(row)
             result += dutyToString(row) + '\n'
         res.send result
 
@@ -136,6 +178,10 @@ module.exports = (robot) ->
             return res.send err
           res.send "I've marked down that: *#{res.match[1]}*"
 
+    robot.respond /duties remind($| [0-9]+$)/i, (res) ->
+      res.send "Sending reminders..."
+      remindPeople(+res.match[1] || 8)
+
     delayLoop = (elements, delay, fn, finish) ->
       setTimeout(() ->
         if elements.length is 0 and finish
@@ -144,21 +190,5 @@ module.exports = (robot) ->
         return delayLoop(elements[1..], delay, fn, finish)
       , delay)
 
-    cron.schedule config('reminder.houseworks'), () ->
-      getSpreadsheetRows DUTIES_SPREADSHEET_NAME, (err, rows) ->
-        if err?
-          return
-        delayLoop rows, 1000, (row) ->
-          if isActive(row, 8) and isHousework(row)
-            message = "Housework reminder: #{dutyToString(row)}\n\nIf needed, ask the housework manager for an automatic 1-day extension, or about other questions."
-            robot.messageRoom robot.brain.userForInitials(row.brother).name, message
-
-
-    cron.schedule config('reminder.quickworks'), () ->
-      getSpreadsheetRows DUTIES_SPREADSHEET_NAME, (err, rows) ->
-        if err?
-          return
-        delayLoop rows, 1000, (row) ->
-          if isActive(row, 5) and isQuickwork(row)
-            message = "Quickwork reminder: " + dutyToString(row) + "\n\nYou cannot be given an extension for quickworks. If you are unable, find another brother to substitute."
-            robot.messageRoom robot.brain.userForInitials(row.brother).name, message
+    cron.schedule config('reminder'), () ->
+      remindPeople(8) # 8 days in advance
