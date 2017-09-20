@@ -142,7 +142,7 @@ module.exports = (robot) ->
           return res.send err
         for row in instruction_list
           if row.category == duty.category and row.duty == duty.duty
-            res.send "*=== Upcoming housework instructions ===*\nFor: #{dutyToString(duty)}\n\n#{instructionToString(row)}"
+            res.send "Instructions for: #{dutyToString(duty)}\n\n#{instructionToString(row)}"
             return
         res.send "Couldn't find any instructions for: #{dutyToString(duty)}"
 
