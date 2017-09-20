@@ -33,162 +33,156 @@ loadAuth = (callback) ->
     callback(null, credentials_json)
 
 module.exports = (robot) ->
-    config = require('hubot-conf')('duties', robot)
+  config = require('hubot-conf')('duties', robot)
 
-    spreadsheet_object = null
-    spreadsheet_key = null
+  spreadsheet_object = null
+  spreadsheet_key = null
 
-    getDoc = (callback) ->
-      sp_key = config('spreadsheet')
-      if not sp_key?
-        return callback("No spreadsheet is currently set")
-      if spreadsheet_key == sp_key
-        return callback(null, spreadsheet_object)
-      spreadsheet_object = new GoogleSpreadsheet(sp_key)
-      loadAuth (err, credentials) ->
+  getDoc = (callback) ->
+    sp_key = config('spreadsheet')
+    if not sp_key?
+      return callback("No spreadsheet is currently set")
+    if spreadsheet_key == sp_key
+      return callback(null, spreadsheet_object)
+    spreadsheet_object = new GoogleSpreadsheet(sp_key)
+    loadAuth (err, credentials) ->
+      if err?
+        return callback(err)
+      spreadsheet_object.useServiceAccountAuth credentials, (err) ->
         if err?
           return callback(err)
-        spreadsheet_object.useServiceAccountAuth credentials, (err) ->
-          if err?
-            return callback(err)
-          spreadsheet_key = sp_key
-          callback(null, spreadsheet_object)
+        spreadsheet_key = sp_key
+        callback(null, spreadsheet_object)
 
-    getSpreadsheet = (name, callback) ->
-      getDoc (err, doc) ->
+  getSpreadsheet = (name, callback) ->
+    getDoc (err, doc) ->
+      if err?
+        return callback(err)
+      doc.getInfo (err, info) ->
         if err?
           return callback(err)
-        doc.getInfo (err, info) ->
-          if err?
-            return callback(err)
-          for sheet in info.worksheets
-            if sheet.title.toLowerCase() == name.toLowerCase()
-              return callback(null, sheet)
-          callback("Could not find sheet with title #{name}")
+        for sheet in info.worksheets
+          if sheet.title.toLowerCase() == name.toLowerCase()
+            return callback(null, sheet)
+        callback("Could not find sheet with title #{name}")
 
-    getSpreadsheetRows = (name, callback) ->
-      getSpreadsheet name, (err, sheet) ->
+  getSpreadsheetRows = (name, callback) ->
+    getSpreadsheet name, (err, sheet) ->
+      if err?
+        return callback(err)
+      sheet.getRows (err, rows) ->
         if err?
           return callback(err)
-        sheet.getRows (err, rows) ->
-          if err?
-            return callback(err)
-          return callback(null, rows)
+        return callback(null, rows)
 
-    dueDate = (row) ->
-      return new Date(+(new Date(row.date)) + 24*60*60*1000*(+(row.ext) + 1) - 1)
+  dueDate = (row) ->
+    return new Date(+(new Date(row.date)) + 24*60*60*1000*(+(row.ext) + 1) - 1)
 
-    isActive = (row, days) ->
-      days = if days? then days else 10000
-      return row.completed.toLowerCase() == 'no' and row.brother != '' and (dueDate(row) - new Date()) < days*24*60*60*1000
+  isActive = (row, days) ->
+    days = if days? then days else 10000
+    return row.completed.toLowerCase() == 'no' and row.brother != '' and (dueDate(row) - new Date()) < days*24*60*60*1000
 
-    isHousework = (row) ->
-      return row.category.toLowerCase() == 'housework'
+  dutyToString = (row) ->
+    s = "*#{row.duty}* (#{row.category}): Due _#{moment(dueDate(row)).calendar()}_"
+    if (+row.ext) > 0
+      s += " (date includes a #{row.ext}-day extension)"
+    return s
 
-    isQuickwork = (row) ->
-      return row.category.toLowerCase() == 'quickwork'
+  instructionToString = (row) ->
+    return "-- Instructions for the *#{row.duty} #{row.category}* duty.\n#{row.instructions}"
 
-    dutyToString = (row) ->
-      s = "*#{row.duty}* (#{row.category}): Due _#{moment(dueDate(row)).calendar()}_"
-      if (+row.ext) > 0
-        s += " (date includes a #{row.ext}-day extension)"
-      return s
+  remindPeople = (days_in_advance) ->
+    getSpreadsheetRows DUTIES_SPREADSHEET_NAME, (err, rows) ->
+      if err?
+        return
+      delayLoop rows, 500, (row) ->
+        if isActive(row, days_in_advance)
+          message = "*#{row.category}* reminder: #{dutyToString(row)}\n\nIf needed, ask the housework manager for an automatic 1-day extension, or about other questions."
+          robot.messageRoom robot.brain.userForInitials(row.brother).name, message
 
-    instructionToString = (row) ->
-      return "-- Instructions for the *#{row.duty}* _#{row.category}_ duty.\n#{row.instructions}"
+  robot.respond /houseworks?(.+)$/i, (res) ->
+    res.send "Please use `peckbot duties#{res.match[1]}` instead."
 
-    remindPeople = (days_in_advance) ->
-      getSpreadsheetRows DUTIES_SPREADSHEET_NAME, (err, rows) ->
-        if err?
-          return
-        delayLoop rows, 500, (row) ->
-          if isActive(row, days_in_advance)
-            message = "*#{row.category}* reminder: #{dutyToString(row)}\n\nIf needed, ask the housework manager for an automatic 1-day extension, or about other questions."
-            robot.messageRoom robot.brain.userForInitials(row.brother).name, message
+  robot.respond /duties link$/i, (res) ->
+    res.send "https://docs.google.com/spreadsheets/d/#{config('spreadsheet')}/edit"
 
-    robot.respond /houseworks?(.+)$/i, (res) ->
-      res.send "Please use `peckbot duties#{res.match[1]}` instead."
+  robot.respond /duties upcoming$/i, (res) ->
+    getSpreadsheetRows DUTIES_SPREADSHEET_NAME, (err, rows) ->
+      if err?
+        return res.send err
+      result = "*== Upcoming duties ==*\n\n"
+      for row in rows
+        if isActive(row, 5)
+          result += row.brother + ' - ' + dutyToString(row) + '\n'
+      res.send result
 
-    robot.respond /duties link$/i, (res) ->
-      res.send "https://docs.google.com/spreadsheets/d/#{config('spreadsheet')}/edit"
+  robot.respond /duties instructions all$/i, (res) ->
+    getSpreadsheetRows INSTRUCTIONS_SPREADSHEET_NAME, (err, rows) ->
+      if err
+        return res.send err
+      result = ""
+      for row in rows
+        result += "#{instructionToString(row)}\n\n"
+      res.send result
 
-    robot.respond /duties upcoming$/i, (res) ->
-      getSpreadsheetRows DUTIES_SPREADSHEET_NAME, (err, rows) ->
+  robot.respond /duties instructions$/i, (res) ->
+    person = res.message.user.initials
+    getSpreadsheetRows DUTIES_SPREADSHEET_NAME, (err, duties) ->
+      if err?
+        return res.send err
+      duty = null
+      for row in duties
+        if row.brother == person and isActive(row)
+          duty = row
+          break
+      if not duty?
+        return res.send "You don't have any upcoming duties!"
+      getSpreadsheetRows INSTRUCTIONS_SPREADSHEET_NAME, (err, instruction_list) ->
         if err?
           return res.send err
-        result = "*== Upcoming duties ==*\n\n"
-        for row in rows
-          if isActive(row, 5)
-            result += row.brother + ' - ' + dutyToString(row) + '\n'
-        res.send result
+        for row in instruction_list
+          if row.category == duty.category and row.duty == duty.duty
+            res.send "*=== Upcoming housework instructions ===*\nFor: #{dutyToString(duty)}\n\n#{instructionToString(row)}"
+            return
+        res.send "Couldn't find any instructions for: #{dutyToString(duty)}"
 
-    robot.respond /duties instructions all$/i, (res) ->
-      getSpreadsheetRows INSTRUCTIONS_SPREADSHEET_NAME, (err, rows) ->
+  robot.respond /duties?($| [A-Z]{3}$)/i, (res) ->
+    getSpreadsheetRows DUTIES_SPREADSHEET_NAME, (err, rows) ->
+      person = if res.match[1] == '' then res.message.user.initials else res.match[1].trim().toUpperCase()
+      if err?
+        return res.send err
+      result = "*== Duties for #{person} ==*\n\n"
+      for row in rows
+        if row.brother == person and isActive(row)
+          result += dutyToString(row) + '\n'
+      res.send result
+
+  robot.respond /ticket (.+)$/i, (res) ->
+    getSpreadsheet TICKETS_SPREADSHEET_NAME, (err, sheet) ->
+      if err
+        return res.send err
+      newRow = {
+        timestamp: moment().format('M/D/YYYY H:mm:ss'),
+        priority: "Unassigned",
+        broken: res.match[1],
+        initials: res.message.user.initials
+      }
+      sheet.addRow newRow, (err) ->
         if err
           return res.send err
-        result = ""
-        for row in rows
-          result += "#{instructionToString(row)}\n\n"
-        res.send result
+        res.send "I've marked down that: *#{res.match[1]}*"
 
-    robot.respond /duties instructions$/i, (res) ->
-      person = res.message.user.initials
-      getSpreadsheetRows DUTIES_SPREADSHEET_NAME, (err, duties) ->
-        if err?
-          return res.send err
-        duty = null
-        for row in duties
-          if row.brother == person and isActive(row)
-            duty = row
-            break
-        if not duty?
-          return res.send "You don't have any upcoming duties!"
-        getSpreadsheetRows INSTRUCTIONS_SPREADSHEET_NAME, (err, instruction_list) ->
-          if err?
-            return res.send err
-          for row in instruction_list
-            if row.category == duty.category and row.duty == duty.duty
-              res.send "*=== Upcoming housework instructions ===*\nFor: #{dutyToString(duty)}\n\n#{instructionToString(row)}"
-              return
-          res.send "Couldn't find any instructions for: #{dutyToString(duty)}"
+  robot.respond /duties remind($| [0-9]+$)/i, (res) ->
+    res.send "Sending reminders..."
+    remindPeople(+res.match[1] || 8)
 
-    robot.respond /duties?($| [A-Z]{3}$)/i, (res) ->
-      getSpreadsheetRows DUTIES_SPREADSHEET_NAME, (err, rows) ->
-        person = if res.match[1] == '' then res.message.user.initials else res.match[1].trim().toUpperCase()
-        if err?
-          return res.send err
-        result = "*== Duties for #{person} ==*\n\n"
-        for row in rows
-          if row.brother == person and isActive(row)
-            result += dutyToString(row) + '\n'
-        res.send result
+  delayLoop = (elements, delay, fn, finish) ->
+    setTimeout(() ->
+      if elements.length is 0 and finish
+        return finish()
+      fn(elements[0])
+      return delayLoop(elements[1..], delay, fn, finish)
+    , delay)
 
-    robot.respond /ticket (.+)$/i, (res) ->
-      getSpreadsheet TICKETS_SPREADSHEET_NAME, (err, sheet) ->
-        if err
-          return res.send err
-        newRow = {
-          timestamp: moment().format('M/D/YYYY H:mm:ss'),
-          priority: "Unassigned",
-          broken: res.match[1],
-          initials: res.message.user.initials
-        }
-        sheet.addRow newRow, (err) ->
-          if err
-            return res.send err
-          res.send "I've marked down that: *#{res.match[1]}*"
-
-    robot.respond /duties remind($| [0-9]+$)/i, (res) ->
-      res.send "Sending reminders..."
-      remindPeople(+res.match[1] || 8)
-
-    delayLoop = (elements, delay, fn, finish) ->
-      setTimeout(() ->
-        if elements.length is 0 and finish
-          return finish()
-        fn(elements[0])
-        return delayLoop(elements[1..], delay, fn, finish)
-      , delay)
-
-    cron.schedule config('reminder'), () ->
-      remindPeople(8) # 8 days in advance
+  cron.schedule config('reminder'), () ->
+    remindPeople(8) # 8 days in advance
