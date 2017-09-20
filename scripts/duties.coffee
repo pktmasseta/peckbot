@@ -101,7 +101,7 @@ module.exports = (robot) ->
           robot.messageRoom robot.brain.userForInitials(row.brother).name, message
 
   robot.respond /houseworks?(.+)$/i, (res) ->
-    res.send "Please use `peckbot duties#{res.match[1]}` instead."
+    res.send "Please use `peckbot duties <whatever>` instead."
 
   robot.respond /duties link$/i, (res) ->
     res.send "https://docs.google.com/spreadsheets/d/#{config('spreadsheet')}/edit"
