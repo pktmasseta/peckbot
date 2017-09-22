@@ -198,7 +198,7 @@ module.exports = (robot) ->
 
   robot.respond /duties remind($| [0-9]+$)/i, (res) ->
     res.send "Sending reminders..."
-    remindPeople(+res.match[1] || 8)
+    remindPeople(+res.match[1] || 1)
 
   cron.schedule config('reminder'), () ->
     remindPeople(8) # 8 days in advance
