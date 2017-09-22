@@ -23,6 +23,12 @@ DUTIES_SPREADSHEET_NAME = 'Duties'
 INSTRUCTIONS_SPREADSHEET_NAME = 'Instructions'
 TICKETS_SPREADSHEET_NAME = 'Tickets'
 
+DUTY_MESSAGES = {
+  housework: "If needed, ask the housework manager for an automatic 1-day extension, or about other questions."
+  quickwork: "Extensions cannot be granted for quickworks. Find someone to switch with if you need extra time."
+  crews: "Extensions cannot be granted for crews. D-crews must be finished by midnight the night of."
+}
+
 loadAuth = (callback) ->
   if credentials_json?
     return callback(null, credentials_json)
@@ -89,16 +95,38 @@ module.exports = (robot) ->
     return s
 
   instructionToString = (row) ->
+    if not row?
+      return "Couldn't find instructions"
     return "-- Instructions for the *#{row.duty} #{row.category}* duty.\n#{row.instructions}"
 
+  instructionForDuty = (duty, instruction_rows) ->
+    for row in instruction_rows
+      if duty.category == row.category and duty.duty == row.duty
+        return row
+    return null
+
+  delayLoop = (elements, delay, fn, finish) ->
+    setTimeout(() ->
+      if elements.length is 0 and finish
+        return finish()
+      fn(elements[0])
+      return delayLoop(elements[1..], delay, fn, finish)
+    , delay)
+
   remindPeople = (days_in_advance) ->
-    getSpreadsheetRows DUTIES_SPREADSHEET_NAME, (err, rows) ->
-      if err?
+    getSpreadsheetRows INSTRUCTIONS_SPREADSHEET_NAME, (ierr, instruction_rows) ->
+      if ierr?
+        robot.messageRoom "#botspam", "Error sending duties pings: #{err}"
         return
-      delayLoop rows, 500, (row) ->
-        if isActive(row, days_in_advance)
-          message = "*#{row.category}* reminder: #{dutyToString(row)}\n\nIf needed, ask the housework manager for an automatic 1-day extension, or about other questions."
-          robot.messageRoom robot.brain.userForInitials(row.brother).name, message
+      getSpreadsheetRows DUTIES_SPREADSHEET_NAME, (err, duty_rows) ->
+        if err?
+          robot.messageRoom "#botspam", "Error sending duties pings: #{err}"
+          return
+        delayLoop duty_rows, 500, (row) ->
+          if isActive(row, days_in_advance)
+            instructions = instructionForDuty(row, instruction_rows)
+            message = "*#{row.category}* reminder: #{dutyToString(row)}\n\n#{DUTY_MESSAGES[row.category]}\n\nInstruction: #{instructionToString(instructions)}"
+            robot.messageRoom robot.brain.userForInitials(row.brother).name, message
 
   robot.respond /houseworks?(.+)$/i, (res) ->
     res.send "Please use `peckbot duties <whatever>` instead."
@@ -140,11 +168,7 @@ module.exports = (robot) ->
       getSpreadsheetRows INSTRUCTIONS_SPREADSHEET_NAME, (err, instruction_list) ->
         if err?
           return res.send err
-        for row in instruction_list
-          if row.category == duty.category and row.duty == duty.duty
-            res.send "Instructions for: #{dutyToString(duty)}\n\n#{instructionToString(row)}"
-            return
-        res.send "Couldn't find any instructions for: #{dutyToString(duty)}"
+        res.send instructionToString(instructionForDuty(duty, instruction_list))
 
   robot.respond /duties?($| [A-Z]{3}$)/i, (res) ->
     getSpreadsheetRows DUTIES_SPREADSHEET_NAME, (err, rows) ->
@@ -175,14 +199,6 @@ module.exports = (robot) ->
   robot.respond /duties remind($| [0-9]+$)/i, (res) ->
     res.send "Sending reminders..."
     remindPeople(+res.match[1] || 8)
-
-  delayLoop = (elements, delay, fn, finish) ->
-    setTimeout(() ->
-      if elements.length is 0 and finish
-        return finish()
-      fn(elements[0])
-      return delayLoop(elements[1..], delay, fn, finish)
-    , delay)
 
   cron.schedule config('reminder'), () ->
     remindPeople(8) # 8 days in advance
