@@ -126,7 +126,7 @@ module.exports = (robot) ->
         delayLoop duty_rows, 500, (row) ->
           if isActive(row, days_in_advance)
             instructions = instructionForDuty(row, instruction_rows)
-            message = "*#{row.category}* reminder: #{dutyToString(row)}\n\n#{DUTY_MESSAGES[row.category]}\n\nInstruction: #{instructionToString(instructions)}"
+            message = "*#{row.category}* reminder: #{dutyToString(row)}\n\n#{DUTY_MESSAGES[row.category]}\n\n#{instructionToString(instructions)}"
             robot.messageRoom robot.brain.userForInitials(row.brother).name, message
 
   robot.respond /houseworks?(.+)$/i, (res) ->
