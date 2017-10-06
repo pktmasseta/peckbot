@@ -27,6 +27,7 @@ DUTY_MESSAGES = {
   housework: "If needed, ask the housework manager for an automatic 1-day extension, or about other questions."
   quickwork: "Extensions cannot be granted for quickworks. Find someone to switch with if you need extra time."
   crews: "Extensions cannot be granted for crews. D-crews must be finished by midnight the night of."
+  social: "Social duties must be done the day they are assigned. If you are unable, find someone to switch with."
 }
 
 loadAuth = (callback) ->
