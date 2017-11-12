@@ -106,13 +106,12 @@ module.exports = (robot) ->
         return row
     return null
 
-  delayLoop = (elements, delay, fn, finish) ->
-    setTimeout(() ->
-      if elements.length is 0 and finish
-        return finish()
-      fn(elements[0])
-      return delayLoop(elements[1..], delay, fn, finish)
-    , delay)
+  delayLoop = (elements, delay, fn) ->
+    elements.forEach((element, index) ->
+      setTimeout(() ->
+        fn(element)
+      , delay*index)
+    )
 
   remindPeople = (days_in_advance) ->
     getSpreadsheetRows INSTRUCTIONS_SPREADSHEET_NAME, (ierr, instruction_rows) ->
@@ -123,7 +122,7 @@ module.exports = (robot) ->
         if err?
           robot.messageRoom "#botspam", "Error sending duties pings: #{err}"
           return
-        delayLoop duty_rows, 500, (row) ->
+        delayLoop duty_rows, 600, (row) ->
           if isActive(row, days_in_advance)
             instructions = instructionForDuty(row, instruction_rows)
             message = "*#{row.category}* reminder: #{dutyToString(row)}\n\n#{DUTY_MESSAGES[row.category]}\n\n#{instructionToString(instructions)}"
