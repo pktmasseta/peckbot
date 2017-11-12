@@ -2,7 +2,7 @@
 #   Gets the initials of brothers in PKT
 #
 # Commands:
-#   hubot initials add <initials> <year> <slack_name> - Adds person to initials database
+#   hubot initials add <initials> <year> <slack ping> - Adds person to initials database
 #   hubot initials get <initials> - Returns the person with the given initials.
 #   hubot initials get <username> - Returns the person wtih the given slack username.
 #
@@ -10,7 +10,7 @@
 #   Detry322
 
 sendUser = (res, user) ->
-  res.send "*#{user['initials']}*: #{user['real_name']}, PKT '#{user['year']}, Slack: #{user['name']}, Email: #{user['email_address']}"
+  res.send "*#{user['initials']}*: #{user['real_name']}, PKT '#{user['year']}, Slack: #{user['display_name']}, Email: #{user['email_address']}"
 
 module.exports = (robot) ->
 
@@ -20,7 +20,7 @@ module.exports = (robot) ->
         return user
     return null
 
-  robot.respond /initials add ([A-Z]{3}) ([0-9]{2}) (.+)$/, (res) ->
+  robot.respond /initials add ([A-Z]{3}) ([0-9]{2}) @?([a-z0-9_\-]+)$/, (res) ->
     initials = res.match[1].toUpperCase()
     year = parseInt(res.match[2])
     slack_name = res.match[3]
@@ -29,7 +29,6 @@ module.exports = (robot) ->
     if user?
       user['initials'] = initials
       user['year'] = year
-      user['matched'] = true
       sendUser(res, user)
       name = user['real_name']
     initials_table = robot.brain.get('pkt-initials') or {}
@@ -58,7 +57,7 @@ module.exports = (robot) ->
   robot.respond /initials get @?([a-z0-9_\-]+)$/, (res) ->
     slack_name = res.match[1]
     user = robot.brain.userForName(slack_name)
-    if user? and user['matched']
+    if user? and user['initials']
       sendUser(res, user)
     else
       res.send "No one with username #{slack_name} exists."

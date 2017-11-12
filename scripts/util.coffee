@@ -13,6 +13,8 @@ shallowClone = (obj) ->
 
 module.exports = (robot) ->
 
+  robot.pingStringForUser = (user) -> "<@#{user['id']}>"
+
   config = require('hubot-conf')('util', robot)
 
   # a hacky way to override the shortcut prefix

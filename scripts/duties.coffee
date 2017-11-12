@@ -26,7 +26,7 @@ TICKETS_SPREADSHEET_NAME = 'Tickets'
 DUTY_MESSAGES = {
   housework: "If needed, ask the housework manager for an automatic 1-day extension, or about other questions."
   quickwork: "Extensions cannot be granted for quickworks. Find someone to switch with if you need extra time."
-  crews: "Extensions cannot be granted for crews. D-crews must be finished by midnight the night of."
+  crew: "Extensions cannot be granted for crews. D-crews must be finished by midnight the night of."
   social: "Social duties must be done the day they are assigned. If you are unable, find someone to switch with."
 }
 
@@ -127,7 +127,11 @@ module.exports = (robot) ->
           if isActive(row, days_in_advance)
             instructions = instructionForDuty(row, instruction_rows)
             message = "*#{row.category}* reminder: #{dutyToString(row)}\n\n#{DUTY_MESSAGES[row.category]}\n\n#{instructionToString(instructions)}"
-            robot.messageRoom robot.brain.userForInitials(row.brother).name, message
+            user = robot.brain.userForInitials(row.brother)
+            if not user?
+              robot.messageRoom '#botspam', "Someone has a housework I couldn't match:\n" + message
+            else
+              robot.messageRoom user.name, message
 
   robot.respond /houseworks?(.+)$/i, (res) ->
     res.send "Please use `peckbot duties <whatever>` instead."
