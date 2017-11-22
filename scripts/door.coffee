@@ -45,7 +45,7 @@ module.exports = (robot) ->
         res.send "Something went wrong trying to register #{name}'s card"
         return
       res.send "Added #{name}'s card to the door unlock"
-      robot.messageRoom config('announce'), "#{res.message.user.name} added *#{name}*'s card to the door unlock system."
+      robot.messageRoom config('announce'), "#{robot.pingStringForUser(res.message.user)} added *#{name}*'s card to the door unlock system."
 
   robot.respond /(door )?unlock/i, (res) ->
     user = res.message.user.name.toLowerCase()
