@@ -10,7 +10,7 @@
 #   Detry322
 
 sendUser = (res, user) ->
-  res.send "*#{user['initials']}*: #{user['real_name']}, PKT '#{user['year']}, Slack: #{user['name']}, Email: #{user['email_address']}"
+  res.send "*#{user['initials']}*: #{user['real_name']}, PKT '#{user['year']}, Slack: #{robot.pingStringForUser(user)}, Email: #{user['email_address']}"
 
 module.exports = (robot) ->
 
