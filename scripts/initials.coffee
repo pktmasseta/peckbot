@@ -9,7 +9,7 @@
 # Author:
 #   Detry322
 
-sendUser = (res, user) ->
+sendUser = (robot, res, user) ->
   res.send "*#{user['initials']}*: #{user['real_name']}, PKT '#{user['year']}, Slack: #{robot.pingStringForUser(user)}, Email: #{user['email_address']}"
 
 module.exports = (robot) ->
@@ -29,7 +29,7 @@ module.exports = (robot) ->
     if user?
       user['initials'] = initials
       user['year'] = year
-      sendUser(res, user)
+      sendUser(robot, res, user)
       name = user['real_name']
     initials_table = robot.brain.get('pkt-initials') or {}
     initials_table[initials] = {
@@ -44,7 +44,7 @@ module.exports = (robot) ->
     initials = res.match[1].toUpperCase()
     user = robot.brain.userForInitials(initials)
     if user?
-      sendUser(res, user)
+      sendUser(robot, res, user)
     else
       # This means they were never matched with a slack user => alum?
       initials_table = robot.brain.get('pkt-initials') or {}
@@ -58,6 +58,6 @@ module.exports = (robot) ->
     slack_name = res.match[1]
     user = robot.brain.userForName(slack_name)
     if user? and user['initials']
-      sendUser(res, user)
+      sendUser(robot, res, user)
     else
       res.send "No one with username #{slack_name} exists."
