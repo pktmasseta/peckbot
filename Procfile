@@ -1,1 +1,1 @@
-web: bin/hubot -a slack
+worker: node_modules/hubot/bin/hubot -a slack
