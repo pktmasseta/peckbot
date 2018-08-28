@@ -26,12 +26,8 @@ authorize = (robot, res, callback) ->
   if credentials_json?
     callback(credentials_json)
     return
-  fs.readFile 'client_secret.json', (err, content) ->
-    if err?
-      res.send "Error loading client_secret.json file"
-      return
-    credentials_json = JSON.parse(content)
-    callback(credentials_json)
+  credentials_json = JSON.parse(process.env['GOOGLE_CLIENT_SECRET'])
+  callback(credentials_json)
 
 getClient = (robot, res, callback) ->
   authorize robot, res, (credentials) ->

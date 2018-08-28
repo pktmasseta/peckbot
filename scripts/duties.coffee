@@ -33,11 +33,8 @@ DUTY_MESSAGES = {
 loadAuth = (callback) ->
   if credentials_json?
     return callback(null, credentials_json)
-  fs.readFile 'service_account.json', (err, content) ->
-    if err?
-      return callback("could not load service_account.json")
-    credentials_json = JSON.parse(content)
-    callback(null, credentials_json)
+  credentials_json = JSON.parse(process.env['GOOGLE_SERVICE_ACCOUNT'])
+  callback(null, credentials_json)
 
 module.exports = (robot) ->
   config = require('hubot-conf')('duties', robot)
