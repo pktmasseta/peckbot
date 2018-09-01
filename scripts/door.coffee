@@ -33,6 +33,7 @@ module.exports = (robot) ->
         return
 
   register = (name, res) ->
+    res.send "Adding #{name}'s card to the door unlock system. Please wait."
     data = QS.stringify({
       first_name: name,
       last_name: "-",
@@ -41,7 +42,7 @@ module.exports = (robot) ->
       auth_key: config('registerkey')
     })
     robot.http("#{config('url')}/add_handler.php").header('Content-Type', 'application/x-www-form-urlencoded').post(data) (err, response, body) ->
-      if err or response.statusCode isnt 302
+      if err or response.statusCode >= 400
         res.send "Something went wrong trying to register #{name}'s card"
         return
       res.send "Added #{name}'s card to the door unlock"
