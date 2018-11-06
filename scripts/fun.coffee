@@ -75,6 +75,10 @@ module.exports = (robot) ->
           setTimeout sendFrom, lennySnakeTick, i + 1
       setTimeout sendFrom, 1200, 2
 
+  robot.respond /order66 ((.*\s*)+)/, (res) ->
+    name = res.match[1]
+    res.send("Yes, my lord.")
+
   robot.hear /lennysnake/i, (res) ->
     sendFrom = (i) ->
       if i < lennySnakeParts.length
