@@ -79,6 +79,11 @@ module.exports = (robot) ->
     name = res.match[1]
     res.send("Yes, my lord.")
 
+  robot.respond /park/, (res) ->
+    num = Math.floor(Math.random()*1000000)
+    # Pass in random number to url. This way slack thinks each link is different and won't cache the image.
+    res.send("http://18.102.216.239:5000/?id=" + num)
+
   robot.hear /lennysnake/i, (res) ->
     sendFrom = (i) ->
       if i < lennySnakeParts.length
