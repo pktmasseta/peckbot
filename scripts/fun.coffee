@@ -3,6 +3,8 @@
 #
 # Commands:
 #   hubot rolldie
+#   hubot park
+#   hubot order66 <something>
 #
 # Author:
 #   Detry322
@@ -75,11 +77,10 @@ module.exports = (robot) ->
           setTimeout sendFrom, lennySnakeTick, i + 1
       setTimeout sendFrom, 1200, 2
 
-  robot.respond /order66 ((.*\s*)+)/, (res) ->
-    name = res.match[1]
+  robot.respond /order66/i, (res) ->
     res.send("Yes, my lord.")
 
-  robot.respond /park/, (res) ->
+  robot.respond /park/i, (res) ->
     num = Math.floor(Math.random()*1000000)
     # Pass in random number to url. This way slack thinks each link is different and won't cache the image.
     res.send("http://18.102.216.239:5000/?id=" + num)
