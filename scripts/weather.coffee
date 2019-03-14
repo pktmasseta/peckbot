@@ -10,7 +10,7 @@
 module.exports = (robot) ->
 
   robot.respond /weather/i, (msg) ->
-    location = "Boston" || process.env.HUBOT_DARK_SKY_DEFAULT_LOCATION
+    location = "02116" || process.env.HUBOT_DARK_SKY_DEFAULT_LOCATION
     return if not location
 
     googleurl = "http://maps.googleapis.com/maps/api/geocode/json"
