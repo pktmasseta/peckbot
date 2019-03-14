@@ -131,7 +131,8 @@ thank mr skeltal
     res.send "checkpoint 1"
     res.http("http://www.reddit.com/r/aww.json")
       .get() (err, response, body) ->
-        res.send err
+        if err
+          res.send "error"
         res.send body
         res.send "checkpoint 2"
         result = JSON.parse(body)
