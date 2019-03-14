@@ -127,7 +127,7 @@ thank mr skeltal
     result = Math.pow(Math.min(rolls[0], rolls[1]), Math.min(rolls[2], rolls[3], rolls[4]))
     res.send ":game_die: You rolled " + result + ". Rolls: "+ rolls.join(", ") + " :game_die:"
 
-robot.respond /aww/i, (res) ->
+  robot.respond /aww/i, (res) ->
     res.http('http://www.reddit.com/r/aww.json')
       .get() (err, r, body) ->
         result = JSON.parse(body)
