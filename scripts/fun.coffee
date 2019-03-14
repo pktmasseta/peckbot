@@ -129,8 +129,9 @@ thank mr skeltal
 
   robot.respond /aww/i, (res) ->
     res.send "checkpoint 1"
-    res.http('http://www.reddit.com/r/aww.json')
-      .get() (err, r, body) ->
+    res.http("http://www.reddit.com/r/aww.json")
+      .get() (err, response, body) ->
+        res.send err
         res.send body
         res.send "checkpoint 2"
         result = JSON.parse(body)
