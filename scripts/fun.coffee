@@ -138,6 +138,8 @@ robot.respond /aww/i, (res) ->
           if child.data.url.indexOf(".jpg") != 1
             urls.push(child.data.url)
 
+        res.push(urls)
+        
         if urls.count <= 0
           res.send "Couldn't find anything cute..."
           return
