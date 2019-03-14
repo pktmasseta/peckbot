@@ -128,9 +128,8 @@ thank mr skeltal
     res.send ":game_die: You rolled " + result + ". Rolls: "+ rolls.join(", ") + " :game_die:"
 
 robot.respond /aww/i, (res) ->
-    search = escape(res.match[1])
     res.http('http://www.reddit.com/r/aww.json')
-      .get() (err, result, body) ->
+      .get() (err, r, body) ->
         result = JSON.parse(body)
 
         urls = [ ]
@@ -139,7 +138,7 @@ robot.respond /aww/i, (res) ->
             urls.push(child.data.url)
 
         res.push(urls)
-        
+
         if urls.count <= 0
           res.send "Couldn't find anything cute..."
           return
