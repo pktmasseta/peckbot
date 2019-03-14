@@ -128,21 +128,23 @@ thank mr skeltal
     res.send ":game_die: You rolled " + result + ". Rolls: "+ rolls.join(", ") + " :game_die:"
 
   robot.respond /aww/i, (res) ->
-    res.send("checkpoint 1")
+    res.send "checkpoint 1"
     res.http('http://www.reddit.com/r/aww.json')
       .get() (err, r, body) ->
-        res.send("checkpoint 2")
+        res.send body
+        res.send "checkpoint 2"
         result = JSON.parse(body)
-        res.send("checkpoint 3")
+        res.send "checkpoint 3"
+        res.send result
 
         urls = [ ]
         for child in result.data.children
-          res.send(child)
+          res.send child
           if child.data.url.indexOf(".jpg") != 1
-            res.send(child.data.url)
+            res.send child.data.url
             urls.push(child.data.url)
 
-        res.send(urls)
+        res.send urls
 
         if urls.count <= 0
           res.send "Couldn't find anything cute..."
