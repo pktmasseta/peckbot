@@ -80,6 +80,9 @@ module.exports = (robot) ->
   robot.respond /order66/i, (res) ->
     res.send("Yes, my lord.")
 
+  robot.respond /yea aight/i, (res) ->
+    res.send("Blueface babyyy")
+
   robot.respond /park/i, (res) ->
     num = Math.floor(Math.random()*1000000)
     # Pass in random number to url. This way slack thinks each link is different and won't cache the image.
