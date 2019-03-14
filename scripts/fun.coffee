@@ -127,29 +127,22 @@ thank mr skeltal
     result = Math.pow(Math.min(rolls[0], rolls[1]), Math.min(rolls[2], rolls[3], rolls[4]))
     res.send ":game_die: You rolled " + result + ". Rolls: "+ rolls.join(", ") + " :game_die:"
 
-robot.respond /aww/i, (msg) ->
-    search = escape(msg.match[1])
-    msg.http('http://www.reddit.com/r/aww.json')
-      .get() (err, res, body) ->
+robot.respond /aww/i, (res) ->
+    search = escape(res.match[1])
+    res.http('http://www.reddit.com/r/aww.json')
+      .get() (err, result, body) ->
         result = JSON.parse(body)
 
         urls = [ ]
         for child in result.data.children
-          if child.data.domain != "self.aww"
+          if child.data.url.indexOf(".jpg") != 1
             urls.push(child.data.url)
 
         if urls.count <= 0
-          msg.send "Couldn't find anything cute..."
+          res.send "Couldn't find anything cute..."
           return
 
         rnd = Math.floor(Math.random()*urls.length)
         chosen_url = urls[rnd]
 
-        parsed_url = url.parse(chosen_url)
-        if parsed_url.host == "imgur.com"
-          parsed_url.host = "i.imgur.com"
-          parsed_url.pathname = parsed_url.pathname + ".jpg"
-
-          chosen_url = url.format(parsed_url)
-
-        msg.send chosen_url
+        res.send chosen_url
