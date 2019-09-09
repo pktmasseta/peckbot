@@ -27,7 +27,6 @@ module.exports = (robot) ->
     "#{config('url')}/index.php?key=#{config('key')}&action=#{config('action')}&username=#{user}"
 
   unlock = (user, res) ->
-    res.send "Debug URL: #{makeURL(user)}"
     robot.http(makeURL(user)).get() (err, response, body) ->
       if err or response.statusCode isnt 200
         res.send "Something went wrong trying to unlock the door"
