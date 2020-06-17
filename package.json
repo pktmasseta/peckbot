@@ -1,8 +1,8 @@
 {
   "name": "peckbot",
-  "version": "0.0.0",
+  "version": "1.6.9",
   "private": true,
-  "author": "Jack Serrino <jserrino@gmail.com>",
+  "author": "Rayden Chia <me@raydenchia.com>",
   "description": "The slackbot that powers the PKT slack",
   "scripts": {
     "start": "node_modules/hubot/bin/hubot -l peckbot"

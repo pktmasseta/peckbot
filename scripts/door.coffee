@@ -1,20 +1,18 @@
 # Description:
-#   Hubot interface to unlock the front door
+#   interface to unlock the front door
 #
 # Commands:
-#   hubot unlock - unlocks the front door.
-#   hubot door unlock - unlocks the front door.
-#   hubot door register <person's name> - register the most recently tapped card
-#
-# Configuration:
-#   HUBOT_UNLOCK_URL
-#   HUBOT_UNLOCK_KEY
-#   HUBOT_UNLOCK_ACTION
-#   HUBOT_UNLOCK_ANNOUNCE
-#   HUBOT_UNLOCK_REGISTERKEY
+#   door unlock - unlocks the front door.
+#   door register <person's name> - register the most recently tapped card
+#   door card list - list cards added by slack user (user email)
+#   door card list all - list all cards
+#   door card activate <card id> - activate card
+#   door card deactivate <card id> - deactivate card
+#   door card adjust <card id> minutes|hours|days|weeks|months <value> - extend or shorten expiry date
+#   door last - show last failed card tap attempt
 #
 # Author:
-#   Detry322
+#   craids
 
 moment = require('moment')
 QS = require('querystring')
@@ -23,46 +21,182 @@ module.exports = (robot) ->
 
   config = require('hubot-conf')('unlock', robot)
 
-  makeURL = (user) ->
-    "#{config('url')}/index.php?key=#{config('key')}&action=#{config('action')}&username=#{user}"
+  makeUnlockURL = () ->
+    "#{config('url')}/door/unlock"
 
-  unlock = (user, res) ->
-    robot.http(makeURL(user)).get() (err, response, body) ->
+  makeLastURL = () ->
+    "#{config('url')}/card/get/lastfail"
+
+  makeTestRegisterURL = (sponsor, name) ->
+    "#{config('url')}/card/test/register/#{name}/#{sponsor}"
+
+  makeRegisterURL = (sponsor, name) ->
+    "#{config('url')}/card/register/#{name}/#{sponsor}"
+
+  makeMyCardsURL = (sponsor) ->
+    "#{config('url')}/card/get/bysponsor/#{sponsor}"
+
+  makeAllCardsURL = () ->
+    "#{config('url')}/card/get/all"
+
+  makeCardInfoURL = (card_id) ->
+    "#{config('url')}/card/get/byid/#{card_id}"
+
+  makeActivateURL = (card_id) ->
+    "#{config('url')}/card/activate/#{card_id}"
+
+  makeDeactivateURL = (card_id) ->
+    "#{config('url')}/card/deactivate/#{card_id}"
+
+  makeAdjustURL = (card_id, minutes, hours, days, weeks, months) ->
+    "#{config('url')}/card/adjust/#{card_id}/#{minutes}/#{hours}/#{days}/#{weeks}/#{months}"
+
+  makePingURL = () ->
+    "#{config('url')}/door/info"
+
+  pecklockRequest = (res, url) ->
+    hdrs =
+      'Pecklock-Token': config('key')
+      'Pecklock-Performed-By': res.message.user.email_address
+
+    return robot.http(url).headers(hdrs)
+
+  unlock = (res) ->
+    pecklockRequest(res, makeUnlockURL()).get() (err, response, body) ->
       if err or response.statusCode isnt 200
-        res.send "Something went wrong trying to unlock the door"
-        return
+        res.send "Something went wrong trying to unlock the door: #{body}"
+        return 
 
   register = (name, res) ->
     res.send "Adding #{name}'s card to the door unlock system. Please wait."
-    data = QS.stringify({
-      first_name: name,
-      last_name: "-",
-      affiliation: "peckbot",
-      exp_date: moment().add(2, 'years').format('YYYY-MM-DD'),
-      auth_key: config('registerkey')
-    })
-    robot.http("#{config('url')}/add_handler.php").header('Content-Type', 'application/x-www-form-urlencoded').post(data) (err, response, body) ->
+    pecklockRequest(res, makeRegisterURL(res.message.user.email_address, name)).get() (err, response, body) ->
       if err or response.statusCode >= 400
-        res.send "Something went wrong trying to register #{name}'s card"
+        res.send "Error registering #{name}'s card: #{body}"
         return
-      res.send "Added #{name}'s card to the door unlock"
-      robot.messageRoom config('announce'), "#{robot.pingStringForUser(res.message.user)} added *#{name}*'s card to the door unlock system."
+      res.send body
+#        robot.messageRoom config('announce'), "#{robot.pingStringForUser(res.message.user)} added *#{name}*'s card to the door unlock system."
 
   robot.respond /(door )?unlock/i, (res) ->
-    user = res.message.user.name.toLowerCase()
     res.send "Unlocking door..."
-    unlock(user, res)
+    unlock(res)
 
-  robot.respond /door register(.*)$/i, (res) ->
-    res.send "You are registering *the most recently tapped card*. Make sure that the most recently tapped card is the person you want to register.\n\nIf you are sure, use `peckbot door actually register <person's name>`"
+  robot.respond /door register (.+)$/i, (res) ->
+    name = res.match[1]
+    res.send "This is a card registration *dry run*, which uses the latest tapped _unregistered_ card in the *last 5 minutes*."
+    pecklockRequest(res, makeTestRegisterURL(res.message.user.email_address, name)).get() (err, response, body) ->
+      if err or response.statusCode >= 400
+        res.send "Dry run failed: #{body}"
+        return
+      res.send body
+      res.send "If you are sure you want to register this card, run `peckbot door actually register <person's name>`"
 
   robot.respond /door actually register (.+)$/i, (res) ->
     user = res.match[1]
     register(user, res)
+  
+  robot.respond /door echo(.*)$/i, (res) ->
+    res.send res.message.user.name + ': ' + res.message.user.email_address
+
+  robot.respond /door card last(.*)$/i, (res) ->
+    pecklockRequest(res, makeLastURL()).get() (err, response, body) ->
+      if err or response.statusCode isnt 200
+        res.send "Something went wrong trying to get the last failed card auth attempt: #{body}"
+        return
+      res.send body
+
+  robot.respond /door card list$/i, (res) ->
+    pecklockRequest(res, makeMyCardsURL(res.message.user.email_address)).get() (err, response, body) ->
+      if err or response.statusCode isnt 200
+        res.send "Something went wrong trying to fetch your cards: #{body}"
+        return
+      res.send body
+
+  robot.respond /door card list all$/i, (res) ->
+    pecklockRequest(res, makeAllCardsURL()).get() (err, response, body) ->
+      if err or response.statusCode isnt 200
+        res.send "Something went wrong trying to fetch all cards: #{body}"
+        return
+      res.send body
+
+  robot.respond /door card activate (.+)$/i, (res) ->
+    card_id = res.match[1]
+    pecklockRequest(res, makeActivateURL(card_id)).get() (err, response, body) ->
+      if err or response.statusCode isnt 200
+        res.send "Something went wrong when trying to activate card: #{body}"
+        return
+      res.send body
+
+  robot.respond /door card deactivate (.+)$/i, (res) ->
+    card_id = res.match[1]
+    pecklockRequest(res, makeDeactivateURL(card_id)).get() (err, response, body) ->
+      if err or response.statusCode isnt 200
+        res.send "Something went wrong when trying to deactivate card: #{body}"
+        return
+      res.send body
+
+  robot.respond /door card adjust (.*) minutes (.*)$/i, (res) ->
+    card_id = res.match[1]
+    minutes = res.match[2]
+    pecklockRequest(res, makeAdjustURL(card_id, minutes, 0, 0, 0, 0)).get() (err, response, body) ->
+      if err or response.statusCode isnt 200
+        res.send "Something went wrong when trying to adjust card validity: #{body}"
+        return
+      res.send body
+
+  robot.respond /door card adjust (.*) hours (.*)$/i, (res) ->
+    card_id = res.match[1]
+    hours = res.match[2]
+    pecklockRequest(res, makeAdjustURL(card_id, 0, hours, 0, 0, 0)).get() (err, response, body) ->
+      if err or response.statusCode isnt 200
+        res.send "Something went wrong when trying to adjust card validity: #{body}"
+        return
+      res.send body
+
+  robot.respond /door card adjust (.*) days (.*)$/i, (res) ->
+    card_id = res.match[1]
+    days = res.match[2]
+    pecklockRequest(res, makeAdjustURL(card_id, 0, 0, days, 0, 0)).get() (err, response, body) ->
+      if err or response.statusCode isnt 200
+        res.send "Something went wrong when trying to adjust card validity: #{body}"
+        return
+      res.send body
+
+  robot.respond /door card adjust (.*) weeks (.*)$/i, (res) ->
+    card_id = res.match[1]
+    weeks = res.match[2]
+    pecklockRequest(res, makeAdjustURL(card_id, 0, 0, 0, weeks, 0)).get() (err, response, body) ->
+      if err or response.statusCode isnt 200
+        res.send "Something went wrong when trying to adjust card validity: #{body}"
+        return
+      res.send body
+
+  robot.respond /door card adjust (.*) months (.*)$/i, (res) ->
+    card_id = res.match[1]
+    months = res.match[2]
+    pecklockRequest(res, makeAdjustURL(card_id, 0, 0, 0, 0, months)).get() (err, response, body) ->
+      if err or response.statusCode isnt 200
+        res.send "Something went wrong when trying to adjust card validity: #{body}"
+        return
+      res.send body
+
+  robot.respond /door card info (.*)$/i, (res) ->
+    card_id = res.match[1]
+    pecklockRequest(res, makeCardInfoURL(card_id)).get() (err, response, body) ->
+      if err or response.statusCode isnt 200
+        res.send "Something went wrong when trying to fetch card info: #{body}"
+        return
+      res.send body
+
+  robot.respond /door ping(.*)$/i, (res) ->
+    pecklockRequest(res, makePingURL()).get() (err, response, body) ->
+      if err or response.statusCode isnt 200
+        res.send "Something went wrong when trying to ping door: #{body}"
+        return
+      res.send body
 
   robot.router.post '/unlock/:secret', (req, res) ->
     if req.params.secret == process.env.HUBOT_SCRIPTS_SECRET
-      unlock('web', res)
+      unlock(res)
     else
       res.send "That isn't the correct secret"
 
