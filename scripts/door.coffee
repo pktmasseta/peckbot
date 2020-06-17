@@ -3,13 +3,15 @@
 #
 # Commands:
 #   door unlock - unlocks the front door.
-#   door register <person's name> - register the most recently tapped card
-#   door card list - list cards added by slack user (user email)
-#   door card list all - list all cards
+#   door register <person's name> - dry-run register the most recently tapped card in the last 5 minutes
+#   door actually register <person's name> - *actually* register most recently tapped card in the last 5 minutes
+#   door card list - list cards added by you
+#   door card list all - list all cards globally
+#   door card info <card id> - show verbose card information
 #   door card activate <card id> - activate card
-#   door card deactivate <card id> - deactivate card
-#   door card adjust <card id> minutes|hours|days|weeks|months <value> - extend or shorten expiry date
-#   door last - show last failed card tap attempt
+#   door card deactivate <card id> - deactivate card (ignores expiry date, disables card use)
+#   door card adjust <card id> minutes|hours|days|weeks|months <value> - extend or shorten expiry date by a positive/negative integer <value>
+#   door card last - show last failed card tap attempt
 #
 # Author:
 #   craids
