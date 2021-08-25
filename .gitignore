@@ -9,6 +9,7 @@ node_modules
 run_redis.sh
 run_server.sh
 start_hubot.sh
+bin/export_configs.sh
 client_secret.json
 service_account.json
 tmp/
