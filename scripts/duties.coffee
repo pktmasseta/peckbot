@@ -2,14 +2,14 @@
 #   Hubot duties reminder system
 #
 # Commands:
-#   hubot duties - gets your upcoming duties
-#   hubot duties XXX - gets XXX's upcoming duties
-#   hubot duties upcoming - gets the upcoming houseworks
-#   hubot duties link - return master spreadsheet link
+#   duties - gets your upcoming duties
+#   duties XXX - gets XXX's upcoming duties
+#   duties upcoming - gets the upcoming houseworks
+#   duties link - return master spreadsheet link
 #
 # Configuration:
 #   HUBOT_HOUSEWORKS_SPREADSHEET - spreadsheet ID of master H-man
-#   HUBOT_HOUSEWORKS_REMINDER - reminder schedule 
+#   HUBOT_HOUSEWORKS_REMINDER - reminder schedule
 #
 # Author:
 #   Detry322

@@ -2,9 +2,9 @@
 #   Fun responses
 #
 # Commands:
-#   hubot rolldie
-#   hubot park
-#   hubot order66 <something>
+#   rolldie
+#   park
+#   order66 <something>
 #
 # Author:
 #   Detry322

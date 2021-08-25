@@ -2,9 +2,9 @@
 #   Gets the initials of brothers in PKT
 #
 # Commands:
-#   hubot initials add <initials> <year> <slack ping> - Adds person to initials database
-#   hubot initials get <initials> - Returns the person with the given initials.
-#   hubot initials get <username> - Returns the person wtih the given slack username.
+#   initials add <initials> <year> <slack ping> - Adds person to initials database
+#   initials get <initials> - Returns the person with the given initials.
+#   initials get <username> - Returns the person wtih the given slack username.
 #
 # Author:
 #   Detry322

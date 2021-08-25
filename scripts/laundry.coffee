@@ -2,11 +2,11 @@
 #   Hubot interface for the PKT Laundry Calendar
 #
 # Commands:
-#   hubot laundry - gets next 10 laundry appointments
-#   hubot laundry add <date> - makes you a laundry appointment for <date>
-#   hubot laundry remove <id> - deletes the laundry appointment with id
-#   hubot laundry addme <email> - adds your email to the laundry calendar so you get invited to events.
-#   hubot laundry next - returns your next appointment.
+#   laundry - gets next 10 laundry appointments
+#   laundry add <date> - makes you a laundry appointment for <date>
+#   laundry remove <id> - deletes the laundry appointment with id
+#   laundry addme <email> - adds your email to the laundry calendar so you get invited to events.
+#   laundry next - returns your next appointment.
 #
 # Author:
 #   Detry322
@@ -50,7 +50,7 @@ getAuthedClient = (robot, res, callback) ->
       scope: SCOPES
     }
     res.send "This app is not yet authorized, please visit this URL (when logged into the pktlaundry@gmail.com account):\n" + authUrl
-    res.send "Enter that code by sending 'peckbot laundry storetoken <token>'"
+    res.send "Enter that code by sending 'laundry storetoken <token>'"
 
 storeToken = (robot, res, code, callback) ->
   getClient robot, res, (oauth2Client) ->
@@ -208,4 +208,3 @@ module.exports = (robot) ->
         res.send response
       else
         res.send "I can't see any appointments in the near future."
-
