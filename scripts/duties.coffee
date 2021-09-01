@@ -16,7 +16,7 @@
 
 fs = require('fs')
 moment = require('moment')
-GoogleSpreadsheet = require 'google-spreadsheet';
+GoogleSpreadsheet = require('google-spreadsheet');
 cron = require 'node-cron';
 
 DUTIES_SPREADSHEET_NAME = 'Duties'
@@ -36,6 +36,14 @@ loadAuth = (callback) ->
   credentials_json = JSON.parse(process.env['GOOGLE_SERVICE_ACCOUNT'])
   callback(null, credentials_json)
 
+getClient = (robot, res, callback) ->
+  authorize robot, res, (credentials) ->
+    clientSecret = credentials.installed.client_secret;
+    clientId = credentials.installed.client_id;
+    redirectUrl = credentials.installed.redirect_uris[0];
+    auth = new googleAuth();
+    oauth2Client = new auth.OAuth2(clientId, clientSecret, redirectUrl);
+    callback(oauth2Client);
 module.exports = (robot) ->
   config = require('hubot-conf')('duties', robot)
 
