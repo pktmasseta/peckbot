@@ -204,7 +204,7 @@ module.exports = (robot) ->
       response = ""
       if appointments.length > 0
         for appointment in appointments
-          response += (printAppointment appointment, false) + "\n"
+          response += (printAppointment appointment, true) + "\n"
         res.send response
       else
         res.send "I can't see any appointments in the near future."
