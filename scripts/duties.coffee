@@ -16,7 +16,7 @@
 
 fs = require('fs')
 moment = require('moment')
-GoogleSpreadsheet = require('google-spreadsheet');
+{GoogleSpreadsheet} = require('google-spreadsheet');
 cron = require 'node-cron';
 
 DUTIES_SPREADSHEET_NAME = 'Duties'
