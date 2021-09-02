@@ -112,32 +112,26 @@ module.exports = function (robot) {
       }, delay * index)
     })
   }
-  const remindPeople = function (days_in_advance) {
-    return getSpreadsheetRows(INSTRUCTIONS_SPREADSHEET_NAME, function (ierr, instruction_rows) {
-      if (ierr != null) {
-        robot.messageRoom("#botspam", `Error sending duties pings: ${err}`)
-        return
-      }
-      return getSpreadsheetRows(DUTIES_SPREADSHEET_NAME, function (err, duty_rows) {
-        if (err != null) {
-          robot.messageRoom("#botspam", `Error sending duties pings: ${err}`)
-          return
-        }
-        return delayLoop(duty_rows, 600, function (row) {
-          var instructions, message, user
-          if (isActive(row, days_in_advance)) {
-            instructions = instructionForDuty(row, instruction_rows)
-            message = `*${row.Category}* reminder: ${dutyToString(row)}\n\n${DUTY_MESSAGES[row.Category]}\n\n${instructionToString(instructions)}`
-            user = robot.brain.userForInitials(row.Brother)
-            if (user == null) {
-              return robot.messageRoom('#botspam', "Someone has a housework I couldn't match:\n" + message)
-            } else {
-              return robot.messageRoom(user.name, message)
-            }
+  const remindPeople = async function (days_in_advance) {
+    try {
+      const instruction_rows = await getSpreadsheetRows(INSTRUCTIONS_SPREADSHEET_NAME)
+      const duty_rows = await getSpreadsheetRows(DUTIES_SPREADSHEET_NAME)
+      delayLoop(duty_rows, 600, function (row) {
+        var instructions, message, user
+        if (isActive(row, days_in_advance)) {
+          instructions = instructionForDuty(row, instruction_rows)
+          message = `*${row.Category}* reminder: ${dutyToString(row)}\n\n${DUTY_MESSAGES[row.Category]}\n\n${instructionToString(instructions)}`
+          user = robot.brain.userForInitials(row.Brother)
+          if (user == null) {
+            robot.messageRoom('#botspam', "Someone has a housework I couldn't match:\n" + message)
+          } else {
+            robot.messageRoom(user.name, message)
           }
-        })
+        }
       })
-    })
+    } catch (err) {
+      robot.messageRoom('#botspam', `Error sending duties pings: ${err}`)
+    }
   }
   robot.respond(/houseworks?(.+)$/i, function (res) {
     return res.send('Please use `peckbot duties <whatever>` instead.')
@@ -149,40 +143,32 @@ module.exports = function (robot) {
     const rows = await getSpreadsheetRows(DUTIES_SPREADSHEET_NAME)
     let i, result, row
     result = '*== Upcoming duties ==*\n\n'
-    console.log(rows.length)
     for (i = 0; i < rows.length; i++) {
       row = rows[i]
-      console.log(rows[i])
       if (isActive(row, 5)) {
-        console.log(row)
         result += row.Brother + ' - ' + dutyToString(row) + '\n'
       }
     }
     return res.send(result)
   })
-  robot.respond(/duties instructions all$/i, function (res) {
-    return getSpreadsheetRows(INSTRUCTIONS_SPREADSHEET_NAME, function (err, rows) {
-      var i, len, result, row
-      if (err) {
-        return res.send(err)
-      }
-      result = ""
-      for (i = 0, len = rows.length; i < len; i++) {
-        row = rows[i]
-        result += `${instructionToString(row)}\n\n`
-      }
-      return res.send(result)
-    })
+  robot.respond(/duties instructions all$/i, async function (res) {
+    const rows = await getSpreadsheetRows(INSTRUCTIONS_SPREADSHEET_NAME)
+    let i, len, result, row
+    result = ''
+    for (i = 0, len = rows.length; i < len; i++) {
+      row = rows[i]
+      result += `${instructionToString(row)}\n\n`
+    }
+    res.send(result)
   })
   robot.respond(/duties instructions$/i, async function (res) {
-    var person
-    person = res.message.user.initials
+    const person = res.message.user.initials
     const duties = await getSpreadsheetRows(DUTIES_SPREADSHEET_NAME)
-    var duty, i, len, row
+    let duty, i, len, row
     duty = null
     for (i = 0, len = duties.length; i < len; i++) {
       row = duties[i]
-      if (row.brother === person && isActive(row)) {
+      if (row.Brother === person && isActive(row)) {
         duty = row
         break
       }
@@ -190,51 +176,38 @@ module.exports = function (robot) {
     if (duty == null) {
       return res.send("You don't have any upcoming duties!")
     }
-    const instruction_list = await getSpreadsheetRows(INSTRUCTIONS_SPREADSHEET_NAME) 
+    const instruction_list = await getSpreadsheetRows(INSTRUCTIONS_SPREADSHEET_NAME)
     return res.send(instructionToString(instructionForDuty(duty, instruction_list)))
   })
-  robot.respond(/duties?($| [A-Z]{3}$)/i, function (res) {
-    return getSpreadsheetRows(DUTIES_SPREADSHEET_NAME, function (err, rows) {
-      var i, len, person, result, row
-      person = res.match[1] === '' ? res.message.user.initials : res.match[1].trim().toUpperCase()
-      if (err != null) {
-        return res.send(err)
+  robot.respond(/duties?($| [A-Z]{3}$)/i, async function (res) {
+    const rows = await getSpreadsheetRows(DUTIES_SPREADSHEET_NAME)
+    var i, len, person, result, row
+    person = res.match[1] === '' ? res.message.user.initials : res.match[1].trim().toUpperCase()
+    result = `*== Duties for ${person} ==*\n\n`
+    for (i = 0, len = rows.length; i < len; i++) {
+      row = rows[i]
+      if (row.Brother === person && isActive(row)) {
+        result += dutyToString(row) + '\n'
       }
-      result = `*== Duties for ${person} ==*\n\n`
-      for (i = 0, len = rows.length; i < len; i++) {
-        row = rows[i]
-        if (row.brother === person && isActive(row)) {
-          result += dutyToString(row) + '\n'
-        }
-      }
-      return res.send(result)
-    })
+    }
+    return res.send(result)
   })
-  robot.respond(/ticket (.+)$/i, function (res) {
-    return getSpreadsheet(TICKETS_SPREADSHEET_NAME, function (err, sheet) {
-      var newRow
-      if (err) {
-        return res.send(err)
-      }
-      newRow = {
-        timestamp: moment().format('M/D/YYYY H:mm:ss'),
-        priority: "Unassigned",
-        broken: res.match[1],
-        initials: res.message.user.initials
-      }
-      return sheet.addRow(newRow, function (err) {
-        if (err) {
-          return res.send(err)
-        }
-        return res.send(`I've marked down that: *${res.match[1]}*`)
-      })
-    })
+  robot.respond(/ticket (.+)$/i, async function (res) {
+    const sheet = await getSpreadsheet(TICKETS_SPREADSHEET_NAME)
+    const newRow = {
+      timestamp: moment().format('M/D/YYYY H:mm:ss'),
+      priority: "Unassigned",
+      broken: res.match[1],
+      initials: res.message.user.initials
+    }
+    sheet.addRow(newRow)
+    res.send(`I've marked down that: *${res.match[1]}*`)
   })
-  robot.respond(/duties remind($| [0-9]+$)/i, function (res) {
+  robot.respond(/duties remind($| [0-9]+$)/i, async function (res) {
     res.send("Sending reminders...")
-    return remindPeople(+res.match[1] || 1)
+    await remindPeople(+res.match[1] || 1)
   })
-  return cron.schedule(config('reminder'), function () {
+  return cron.schedule(config('reminder'), async function () {
     return remindPeople(8) // 8 days in advance
   })
 }
