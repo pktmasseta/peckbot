@@ -1,6 +1,10 @@
 # Description:
 #   Utilities
-#
+#  Commands:
+#   hubot duties - gets your upcoming duties
+#   hubot duties XXX - gets XXX's upcoming duties
+#   hubot duties upcoming - gets the upcoming houseworks
+#   hubot duties link - return master spreadsheet link
 # Author:
 #   anishathalye
 
