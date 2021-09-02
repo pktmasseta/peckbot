@@ -75,17 +75,17 @@ module.exports = function (robot) {
     return rows
   }
   const dueDate = function (row) {
-    return new Date(+(new Date(row.date)) + 24 * 60 * 60 * 1000 * (+row.ext + 1) - 1)
+    return new Date(+(new Date(row.Date)) + 24 * 60 * 60 * 1000 * (+row.Ext + 1) - 1)
   }
   const isActive = function (row, days) {
     days = days != null ? days : 10000
-    return String(row.completed).toLowerCase() === 'no' && row.brother !== '' && (dueDate(row) - new Date()) < days * 24 * 60 * 60 * 1000
+    return String(row.Completed).toLowerCase() === 'no' && row.Brother !== '' && (dueDate(row) - new Date()) < days * 24 * 60 * 60 * 1000
   }
   const dutyToString = function (row) {
     var s
-    s = `*${row.duty}* (${row.category}): Due _${moment(dueDate(row)).calendar()}_`
-    if ((+row.ext) > 0) {
-      s += ` (date includes a ${row.ext}-day extension)`
+    s = `*${row.Duty}* (${row.Category}): Due _${moment(dueDate(row)).calendar()}_`
+    if ((+row.Ext) > 0) {
+      s += ` (date includes a ${row.Ext}-day extension)`
     }
     return s
   }
@@ -93,13 +93,13 @@ module.exports = function (robot) {
     if (row == null) {
       return "Couldn't find instructions"
     }
-    return `-- Instructions for the *${row.duty} ${row.category}* duty.\n${row.instructions}`
+    return `-- Instructions for the *${row.Duty} ${row.Category}* duty.\n${row.Instructions}`
   }
   const instructionForDuty = function (duty, instruction_rows) {
     var i, len, row
     for (i = 0, len = instruction_rows.length; i < len; i++) {
       row = instruction_rows[i]
-      if (duty.category === row.category && duty.duty === row.duty) {
+      if (duty.Category === row.Category && duty.Duty === row.Duty) {
         return row
       }
     }
@@ -127,8 +127,8 @@ module.exports = function (robot) {
           var instructions, message, user
           if (isActive(row, days_in_advance)) {
             instructions = instructionForDuty(row, instruction_rows)
-            message = `*${row.category}* reminder: ${dutyToString(row)}\n\n${DUTY_MESSAGES[row.category]}\n\n${instructionToString(instructions)}`
-            user = robot.brain.userForInitials(row.brother)
+            message = `*${row.Category}* reminder: ${dutyToString(row)}\n\n${DUTY_MESSAGES[row.Category]}\n\n${instructionToString(instructions)}`
+            user = robot.brain.userForInitials(row.Brother)
             if (user == null) {
               return robot.messageRoom('#botspam', "Someone has a housework I couldn't match:\n" + message)
             } else {
@@ -147,12 +147,15 @@ module.exports = function (robot) {
   })
   robot.respond(/duties upcoming$/i, async function (res) {
     const rows = await getSpreadsheetRows(DUTIES_SPREADSHEET_NAME)
-    let i, len, result, row
+    let i, result, row
     result = '*== Upcoming duties ==*\n\n'
-    for (i = 0, len = rows.length; i < len; i++) {
+    console.log(rows.length)
+    for (i = 0; i < rows.length; i++) {
       row = rows[i]
+      console.log(rows[i])
       if (isActive(row, 5)) {
-        result += row.brother + ' - ' + dutyToString(row) + '\n'
+        console.log(row)
+        result += row.Brother + ' - ' + dutyToString(row) + '\n'
       }
     }
     return res.send(result)
