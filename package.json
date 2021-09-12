@@ -9,9 +9,8 @@
   },
   "dependencies": {
     "chrono-node": "^1.0.8",
-    "google-auth-library": "^0.9.6",
     "google-spreadsheet": "^3.1.15",
-    "googleapis": "^2.1.5",
+    "googleapis": "^27.0.0",
     "hubot": "^2.12.0",
     "hubot-conf": "^1.0.0",
     "hubot-diagnostics": "0.0.1",
