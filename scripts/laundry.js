@@ -73,7 +73,7 @@ apiWrapper = async function (res, callback) {
 
 getAllAppointments = async function (robot, res, num, callback) {
     let oauth2Client = await getAuthedClient(robot, res)
-    const calendar = google.calendar({version: 'v3', oauth2Client});
+    const calendar = google.calendar({version: 'v3', auth: oauth2Client});
     return calendar.events.list({
         auth: oauth2Client,
         calendarId: 'primary',
@@ -89,7 +89,7 @@ getAllAppointments = async function (robot, res, num, callback) {
 
 getNextAppointment = async function (robot, res, user, callback) {
     let oauth2Client = await getAuthedClient(robot, res)
-    const calendar = google.calendar({version: 'v3', oauth2Client});
+    const calendar = google.calendar({version: 'v3', auth: oauth2Client});
     return calendar.events.list({
         auth: oauth2Client,
         calendarId: 'primary',
@@ -117,7 +117,7 @@ createAppointment = async function (robot, res, user, date, callback) {
             email: email
         });
     }
-    const calendar = google.calendar({version: 'v3', oauth2Client});
+    const calendar = google.calendar({version: 'v3', auth: oauth2Client});
     return calendar.events.insert({
         auth: oauth2Client,
         calendarId: 'primary',
@@ -140,7 +140,7 @@ createAppointment = async function (robot, res, user, date, callback) {
 
 deleteAppointment = async function (robot, res, eid, callback) {
     let oauth2Client = await getAuthedClient(robot, res)
-    const calendar = google.calendar({version: 'v3', oauth2Client});
+    const calendar = google.calendar({version: 'v3', auth: oauth2Client});
     return calendar.events.delete({
         auth: oauth2Client,
         calendarId: 'primary',
