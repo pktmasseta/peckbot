@@ -12,7 +12,7 @@
 //   Detry322
 
 const { google } = require('googleapis')
-const gal = require('google-auth-library')
+const {OAuth2Client} = require('google-auth-library');
 const chrono = require('chrono-node')
 const moment = require('moment')
 
@@ -24,7 +24,7 @@ const getClient = async function (robot, res) {
     let clientSecret = credentials_json.installed.client_secret;
     let clientID = credentials_json.installed.client_id;
     let redirectURL = credentials_json.installed.redirect_uris[0];
-    const oauth2Client = new gal.OAuth2Client(clientID, clientSecret, redirectURL);
+    const oauth2Client = new OAuth2Client(clientID, clientSecret, redirectURL);
     return oauth2Client;
 }
 // TODO: Instantiate local web server to accept oauth callback
@@ -36,22 +36,23 @@ const getAuthedClient = async function (robot, res) {
         oauth2Client.setCredentials(tokens)
         return oauth2Client
     }
-    const authUrl = await oauth2Client.generateAuthUrl({
+    const authUrl = oauth2Client.generateAuthUrl({
         access_type: 'offline',
         scope: SCOPES,
         // Refresh token only returned first time user consents to access
         prompt: 'consent'
     })
     res.send("This app is not yet authorized, please visit this URL (when logged into the pktlaundry@gmail.com account):\n" + authUrl)
-    res.send("Enter that code by sending 'peckbot laundry storetoken <tokens>'")
+    res.send("Enter that code by sending 'peckbot laundry storetokens <tokens>'")
 }
 storeTokens = async function (robot, res, code) {
     const oauth2Client = await getClient(robot, res)
-    oauth2Client.getToken(code, function (err, token) {
-        if (err) return console.error('Error retrieving access token', err);
-        oauth2Client.setCredentials(token);
-        robot.brain.set('laundry-calendar-tokens', oauth2Client.credentials);
-    })
+    const tokens = await oauth2Client.getToken(code)
+    if(tokens == null){
+        res.send("Invalid code, please try again.")
+        return
+    }
+    robot.brain.set('laundry-calendar-tokens', tokens);
     res.send("Token has been succesfully stored!")
 }
 
@@ -91,8 +92,8 @@ getNextAppointment = async function (robot, res, user, callback) {
     let oauth2Client = await getAuthedClient(robot, res)
     const calendar = google.calendar({version: 'v3', auth: oauth2Client});
     return calendar.events.list({
-        auth: oauth2Client,
         calendarId: 'primary',
+        auth: oauth2Client,
         timeMin: (new Date()).toISOString(),
         maxResults: 1,
         singleEvents: true,
@@ -122,16 +123,16 @@ createAppointment = async function (robot, res, user, date, callback) {
         auth: oauth2Client,
         calendarId: 'primary',
         resource: {
-            start: {
-                dateTime: date.toISOString()
+            'start': {
+                'dateTime': date.toISOString()
             },
-            end: {
-                dateTime: (new Date(date.getTime() + 7200000)).toISOString()
+            'end': {
+                'dateTime': (new Date(date.getTime() + 7200000)).toISOString()
             },
-            attendees: attendees,
-            sendNotifications: true,
-            description: `Laundry use for ${user}`,
-            summary: user
+            'attendees': attendees,
+            'sendNotifications': true,
+            'description': `Laundry use for ${user}`,
+            'summary': user
         }
     }, apiWrapper(res, async function (response) {
         return callback(null, response, email);
@@ -142,7 +143,6 @@ deleteAppointment = async function (robot, res, eid, callback) {
     let oauth2Client = await getAuthedClient(robot, res)
     const calendar = google.calendar({version: 'v3', auth: oauth2Client});
     return calendar.events.delete({
-        auth: oauth2Client,
         calendarId: 'primary',
         eventId: eid
     }, apiWrapper(res, async function (response) {
@@ -211,26 +211,26 @@ module.exports = async function (robot) {
         });
     });
     robot.respond(/laundry revoketokens\s*$/i, async function (res) {
-        robot.brain.set('laundry-calendar-token', null);
-        return res.send("Token revoked.");
+        robot.brain.set('laundry-calendar-tokens', null);
+        res.send("Token revoked.");
     });
     robot.respond(/laundry storetokens (.+)$/i, async function (res) {
-        return await storeTokens(robot, res, res.match[1])
+        await storeTokens(robot, res, res.match[1])
     });
     robot.respond(/laundry displaytokens$/i, async function (res) {
-        return res.send(getTokensInfo(robot, res, async function (err, accessTokenInfo, refreshTokenInfo) {
+        res.send(getTokensInfo(robot, res, async function (err, accessTokenInfo, refreshTokenInfo) {
             if (err != null) {
                 res.send("Failed to get token info.");
-                return;
+                return
             }
-            return res.send(accessTokenInfo + refreshTokenInfo)
+            res.send(accessTokenInfo + refreshTokenInfo)
         }))
     })
     robot.respond(/laundry addme (.+)$/i, async function (res) {
         var user;
         user = res.message.user.name.toLowerCase();
         setEmail(robot, user, res.match[1]);
-        return res.send(`Thanks! I'll now invite ${res.match[1]} to all future events created by you.`);
+        res.send(`Thanks! I'll now invite ${res.match[1]} to all future events created by you.`);
     });
     robot.respond(/laundry removeme\s*$/i, async function (res) {
         var emails_table, user;
@@ -238,9 +238,9 @@ module.exports = async function (robot) {
         emails_table = robot.brain.get('pkt-emails') || {};
         delete emails_table[user];
         robot.brain.set('pkt-emails', emails_table);
-        return res.send("OK! Removed your email from the list.");
+        res.send("OK! Removed your email from the list.");
     });
-    return robot.respond(/laundry\s*$/i, async function (res) {
+    robot.respond(/laundry\s*$/i, async function (res) {
         return getAllAppointments(robot, res, 10, async function (err, appointments) {
             var appointment, i, len, response;
             if (err != null) {

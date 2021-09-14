@@ -47,7 +47,8 @@ getAuthedClient = (robot, res, callback) ->
       return
     authUrl = oauth2Client.generateAuthUrl {
       access_type: 'offline',
-      scope: SCOPES
+      scope: SCOPES,
+      prompt:'consent'
     }
     res.send "This app is not yet authorized, please visit this URL (when logged into the pktlaundry@gmail.com account):\n" + authUrl
     res.send "Enter that code by sending 'peckbot laundry storetoken <token>'"
