@@ -5,6 +5,7 @@
 #   hubot duties XXX - gets XXX's upcoming duties
 #   hubot duties upcoming - gets the upcoming houseworks
 #   hubot duties link - return master spreadsheet link
+#   hubot group create <group> - create a new group
 # Author:
 #   anishathalye
 

@@ -20,7 +20,7 @@ module.exports = (robot) ->
         return user
     return null
 
-  robot.respond /initials add ([A-Z]{3}) ([0-9]{2}) @?([a-z0-9_\-\.]+)$/, (res) ->
+  robot.respond /initials add ([A-Z]{3}) ([0-9]{2}) (@?([a-z0-9_\-\.]+)|(".*"))$/, (res) ->
     initials = res.match[1].toUpperCase()
     year = parseInt(res.match[2])
     slack_name = res.match[3]
@@ -54,7 +54,7 @@ module.exports = (robot) ->
       else
         res.send "No one with initials #{initials} exists."
 
-  robot.respond /initials get @?([a-z0-9_\-]+)$/, (res) ->
+  robot.respond /initials get (@?([a-z0-9_\-\.]+)|(".*"))$/, (res) ->
     slack_name = res.match[1]
     user = robot.brain.userForName(slack_name)
     if user? and user['initials']
