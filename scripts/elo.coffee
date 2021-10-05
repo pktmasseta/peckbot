@@ -1,13 +1,12 @@
 # Description:
-#   Example scripts for you to examine and try out.
+#   Hubot ELO for tracking pool skill
 #
-# Notes:
-#   They are commented out by default, because most of them are pretty silly and
-#   wouldn't be useful and amusing enough for day to day huboting.
-#   Uncomment the ones you want to try and experiment with.
+# Commands:
+#   hubot elo - gets top 15 pool brothers
+#   hubot elo <winner initials> beat <loser initials> - lets peckbot know about a rated pool game
 #
-#   These are from the scripting documentation: https://github.com/github/hubot/blob/master/docs/scripting.md
-
+# Author:
+#   BMA '22
 ELO_SITE = 'https://peckelo.brendanashworth.workers.dev'
 
 # Elo constants
@@ -24,20 +23,15 @@ module.exports = (robot) ->
 
     res.send "Updating leaderboard after #{winner} beat #{loser}..."
 
-    winnerElo = STARTING_ELO
-    loserElo = STARTING_ELO
-
     # don't let slack cache
     pf = "?id=#{Math.round(Math.random() * 1e6)}"
 
     # overwrite if either has played before
     robot.http("#{ELO_SITE}/get/#{winner}#{pf}").get() (err, response, body) ->
-      if not err
-        winnerElo = Number(body)
+      winnerElo = Number(body) || STARTING_ELO
    
       robot.http("#{ELO_SITE}/get/#{loser}#{pf}").get() (err, response, body) ->
-        if not err
-          loserElo = Number(body)
+        loserElo = Number(body) || STARTING_ELO
 
         # do the calculations
         # https://mattmazzola.medium.com/implementing-the-elo-rating-system-a085f178e065
