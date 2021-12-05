@@ -197,15 +197,16 @@ module.exports = (robot) ->
     res.send "OK! Removed your email from the list."
 
   robot.respond /laundry\s*$/i, (res) ->
-    getAllAppointments robot, res, 10, (err, appointments) ->
-      if err?
-        res.send "Couldn't fetch appointments."
-        return
-      response = ""
-      if appointments.length > 0
-        for appointment in appointments
-          response += (printAppointment appointment, false) + "\n"
-        res.send response
-      else
-        res.send "I can't see any appointments in the near future."
+    res.send "https://calendar.google.com/calendar/u/3?cid=cGt0bGF1bmRyeUBnbWFpbC5jb20"
+#     getAllAppointments robot, res, 10, (err, appointments) ->
+#       if err?
+#         res.send "Couldn't fetch appointments."
+#         return
+#       response = ""
+#       if appointments.length > 0
+#         for appointment in appointments
+#           response += (printAppointment appointment, false) + "\n"
+#         res.send response
+#       else
+#         res.send "I can't see any appointments in the near future."
 
