@@ -17,8 +17,8 @@
 #   craids
 
 moment = require('moment')
-QS = require('querystring')
-
+QS = require('querystring') 
+totp = require('./totp.js')
 module.exports = (robot) ->
 
   config = require('hubot-conf')('unlock', robot)
@@ -64,33 +64,36 @@ module.exports = (robot) ->
     return robot.http(url).headers(hdrs)
 
   unlock = (res) ->
-    pecklockRequest(res, makeUnlockURL()).get() (err, response, body) ->
-      if err or response.statusCode isnt 200
-        res.send "Something went wrong trying to unlock the door: #{body}"
-        return 
+    # pecklockRequest(res, makeUnlockURL()).get() (err, response, body) ->
+    #   if err or response.statusCode isnt 200
+    #     res.send "Something went wrong trying to unlock the door: #{body}"
+    #     return 
+    res.send "Door code is " + totp.getOTP( config('unlockkey'))
 
   register = (name, res) ->
-    res.send "Adding #{name}'s card to the door unlock system. Please wait."
-    pecklockRequest(res, makeRegisterURL(res.message.user.email_address, name)).get() (err, response, body) ->
-      if err or response.statusCode >= 400
-        res.send "Error registering #{name}'s card: #{body}"
-        return
-      res.send body
+    res.send "Enter the following key then scan #{name}'s card to register it: " + totp.getOTP( config('registerkey'))
+    # pecklockRequest(res, makeRegisterURL(res.message.user.email_address, name)).get() (err, response, body) ->
+    #   if err or response.statusCode >= 400
+    #     res.send "Error registering #{name}'s card: #{body}"
+    #     return
+    #   res.send body
 #        robot.messageRoom config('announce'), "#{robot.pingStringForUser(res.message.user)} added *#{name}*'s card to the door unlock system."
 
   robot.respond /(door )?unlock/i, (res) ->
-    res.send "Unlocking door..."
+    # res.send "Unlocking door..."
     unlock(res)
 
   robot.respond /door register (.+)$/i, (res) ->
-    name = res.match[1]
-    res.send "This is a card registration *dry run*, which uses the latest tapped _unregistered_ card in the *last 5 minutes*."
-    pecklockRequest(res, makeTestRegisterURL(res.message.user.email_address, name)).get() (err, response, body) ->
-      if err or response.statusCode >= 400
-        res.send "Dry run failed: #{body}"
-        return
-      res.send body
-      res.send "If you are sure you want to register this card, run `peckbot door actually register <person's name>`"
+    # name = res.match[1]
+    # res.send "This is a card registration *dry run*, which uses the latest tapped _unregistered_ card in the *last 5 minutes*."
+    # pecklockRequest(res, makeTestRegisterURL(res.message.user.email_address, name)).get() (err, response, body) ->
+    #   if err or response.statusCode >= 400
+    #     res.send "Dry run failed: #{body}"
+    #     return
+    #   res.send body
+    #   res.send "If you are sure you want to register this card, run `peckbot door actually register <person's name>`"
+    user = res.match[1]
+    register(user, res)
 
   robot.respond /door actually register (.+)$/i, (res) ->
     user = res.match[1]
