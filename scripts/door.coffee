@@ -18,7 +18,7 @@
 
 moment = require('moment')
 QS = require('querystring') 
-totp = require('./totp.js')
+totp = require("totp-generator");
 module.exports = (robot) ->
 
   config = require('hubot-conf')('unlock', robot)
@@ -68,10 +68,10 @@ module.exports = (robot) ->
     #   if err or response.statusCode isnt 200
     #     res.send "Something went wrong trying to unlock the door: #{body}"
     #     return 
-    res.send "Door code is " + totp.getOTP( config('unlockkey'))
+    res.send "Door code is " + totp(config('unlockkey'),{'digits':6, 'period':300})
 
   register = (name, res) ->
-    res.send "Enter the following key then scan #{name}'s card to register it: " + totp.getOTP( config('registerkey'))
+    res.send "Enter the following key then scan #{name}'s card to register it: " + totp(config('enrollkey'),{'digits':6, 'period':300})
     # pecklockRequest(res, makeRegisterURL(res.message.user.email_address, name)).get() (err, response, body) ->
     #   if err or response.statusCode >= 400
     #     res.send "Error registering #{name}'s card: #{body}"
