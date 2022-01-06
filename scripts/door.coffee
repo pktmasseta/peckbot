@@ -68,10 +68,10 @@ module.exports = (robot) ->
     #   if err or response.statusCode isnt 200
     #     res.send "Something went wrong trying to unlock the door: #{body}"
     #     return 
-    res.send "Door code is " + config('unlock'))#totp(config('unlockkey'),{'digits':6, 'period':300})
+    res.send "Door code is " + config('unlock')#totp(config('unlockkey'),{'digits':6, 'period':300})
 
   register = (name, res) ->
-    res.send "Enter the following key then scan #{name}'s card to register it: " + config('enroll'))#totp(config('enrollkey'),{'digits':6, 'period':300})
+    res.send "Enter the following key then scan #{name}'s card to register it: " + config('enroll')#totp(config('enrollkey'),{'digits':6, 'period':300})
     # pecklockRequest(res, makeRegisterURL(res.message.user.email_address, name)).get() (err, response, body) ->
     #   if err or response.statusCode >= 400
     #     res.send "Error registering #{name}'s card: #{body}"
