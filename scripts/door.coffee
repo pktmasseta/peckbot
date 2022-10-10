@@ -96,8 +96,8 @@ module.exports = (robot) ->
     user = res.match[1]
     register(user, res)
   
-  robot.respond /door echo(.*)$/i, (res) ->
-    res.send res.message.user.name + ': ' + res.message.user.email_address
+#   robot.respond /door echo(.*)$/i, (res) ->
+#     res.send res.message.user.name + ': ' + res.message.user.email_address
 
   robot.respond /door card last(.*)$/i, (res) ->
     pecklockRequest(res, makeLastURL()).get() (err, response, body) ->
