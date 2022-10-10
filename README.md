@@ -2,7 +2,7 @@
 
 ## HOW TO DEPLOY
 
-Peckbot is currently hosted on heroku. To deploy, merge master into deploy and push.
+Peckbot is currently hosted on heroku. To deploy, push to master.
 
 ## Info
 
