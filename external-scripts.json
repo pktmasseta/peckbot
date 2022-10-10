@@ -1,12 +1,12 @@
 [
-  "hubot-conf",
   "hubot-diagnostics",
-  "hubot-espn",
-  "hubot-group",
   "hubot-help",
-  "hubot-postgres-brain",
-  "hubot-seen",
-  "hubot-shortcut",
-  "hubot-principles",
+  "hubot-google-images",
+  "hubot-google-translate",
+  "hubot-pugme",
+  "hubot-maps",
+  "hubot-redis-brain",
+  "hubot-rules",
+  "hubot-shipit",
   "hubot-redisred"
 ]
