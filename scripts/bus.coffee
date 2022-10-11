@@ -1,6 +1,5 @@
 cheerio = require('cheerio');
 rp = require('request-promise');
-afterLoad = require('after-load');
 
 base_url = 'https://mobi.mit.edu'
 
@@ -12,17 +11,6 @@ Date.prototype.addMinutes = (h) ->
 
 module.exports = (robot) ->
   robot.hear /bus/i, (res) ->
-    getActiveRoutes = () ->
-        routes = []
-        html = afterLoad(base_url + '/default/transit/index')
-        $ = cheerio.load(html);
-        $("span:contains('(running)')").parent().parent().each( (elem) ->
-            x = $(this).attr("href");
-            if(x.includes("transit"))
-                routes.push(x)
-        )
-        routes
-
     getRouteInfo = (route) ->
         rp(base_url + route).then( (html) ->
             $ = cheerio.load(html);
@@ -38,4 +26,14 @@ module.exports = (robot) ->
             res.send(out_text)
         )
 
-    getActiveRoutes().forEach( (route) -> getRouteInfo(route) )
+    getActiveRoutes = () ->
+        rp(base_url + "/default/transit/index").then( (html) ->
+            $ = cheerio.load(html);
+            $("span:contains('(running)')").parent().parent().each( (elem) ->
+                x = $(this).attr("href");
+                if(x.includes("transit"))
+                    getRouteInfo(x)
+            )
+        )
+
+    getActiveRoutes()
