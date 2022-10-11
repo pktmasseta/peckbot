@@ -5,9 +5,7 @@
   "author": "Raunak Chowdhuri <raunak@oloren.ai>",
   "description": "pkt slackbot",
   "dependencies": {
-    "after-load": "^1.0.4",
     "cheerio": "^1.0.0-rc.12",
-    "got": "^11.8.3",
     "hubot": "^3.3.2",
     "hubot-diagnostics": "^1.0.0",
     "hubot-google-images": "^0.2.7",
