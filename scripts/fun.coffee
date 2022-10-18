@@ -116,6 +116,9 @@ thank mr skeltal
 
   robot.hear /(doot|[0-9]spooky)/i, (res) ->
     res.send dootDoot
+    
+  robot.hear /print/
+    res.send "Go to Ballroom. Connect to Ballroom WiFi. Password is 'helloworld' without quotes. Scan for printers (should be Brother smth smth). If you don't see it, turn the printer off and on again."
 
   robot.respond /rolldie/i, (res) ->
     rolls = (randomInt(1, 7) for i in [1..5])
