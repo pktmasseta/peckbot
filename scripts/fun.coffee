@@ -116,10 +116,8 @@ thank mr skeltal
 
   robot.hear /(doot|[0-9]spooky)/i, (res) ->
     res.send dootDoot
-    
-  robot.hear /print/
+  robot.hear /print/i, (res) ->
     res.send "Go to Ballroom. Connect to Ballroom WiFi. Password is 'helloworld' without quotes. Scan for printers (should be Brother smth smth). If you don't see it, turn the printer off and on again."
-
   robot.respond /rolldie/i, (res) ->
     rolls = (randomInt(1, 7) for i in [1..5])
     result = Math.pow(Math.min(rolls[0], rolls[1]), Math.min(rolls[2], rolls[3], rolls[4]))
